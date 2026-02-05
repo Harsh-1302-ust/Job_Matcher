@@ -93,11 +93,10 @@ def match_resumes(job_id: str, top_n: int = 5, show_all: bool = False):
 
 def score_resume(resume: dict, job: dict) -> dict:
     """
-    Compute score per resume vs JD using:
-    - Primary skills → 50 points
-    - Secondary skills → 20 points
-    - Experience → 20 points
-    - Location → 10 points
+    Primary skills -50 points
+    Secondary skills - 20 points
+    Experience - 20 points
+    Location - 10 points
     Total = 100 points
     Threshold for approval = 60%
     """
@@ -106,7 +105,7 @@ def score_resume(resume: dict, job: dict) -> dict:
     primary = [normalize_skill(s) for s in job.get("primary_skills", [])]
     secondary = [normalize_skill(s) for s in job.get("secondary_skills", [])]
 
-    # Helper: consider a skill matched if either normalized string contains the other
+   
     def matched(target_list, source_list):
         matched_items = []
         for t in target_list:
@@ -118,7 +117,7 @@ def score_resume(resume: dict, job: dict) -> dict:
                     break
         return matched_items
 
-    # Skill score (use containment matching to handle variants like 'reactjs' vs 'react')
+   
     primary_matched = matched(primary, resume_skills)
     secondary_matched = matched(secondary, resume_skills)
 

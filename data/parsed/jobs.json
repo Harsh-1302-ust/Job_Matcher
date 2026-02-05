@@ -109,5 +109,30 @@
     "location": "Not specified",
     "education": null,
     "job_id": "JD_QA_Engineer"
+  },
+  {
+    "primary_skills": [
+      "Python scripting",
+      "Linux and Windows environments",
+      "Application and infrastructure troubleshooting",
+      "Virtualization technologies (e.g., VMware)",
+      "Application monitoring and system analysis tools",
+      "Full stack application development",
+      "React",
+      "TypeScript",
+      "Integration of frontend with backend Python services",
+      "Secure coding practices"
+    ],
+    "secondary_skills": [
+      "CI/CD pipelines",
+      "Cloud platforms (AWS, Azure, GCP)",
+      "Containerization (Docker, Kubernetes)",
+      "DevOps practices",
+      "Networking and system performance concepts"
+    ],
+    "min_experience": 0,
+    "location": "Not specified",
+    "education": null,
+    "job_id": "Application_Support_Automation_Engineer_JD"
   }
 ]
