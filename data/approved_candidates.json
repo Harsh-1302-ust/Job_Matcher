@@ -1,0 +1,29 @@
+[
+  {
+    "candidate_id": "f365aee0-f72b-4689-b7a0-3872b23057fd",
+    "name": "Harsh Jaiswal",
+    "email": "harsh.jaiswal@ust.com",
+    "experience_years": 4,
+    "percentage": 86.0,
+    "status": "APPROVED",
+    "location_match": "Yes",
+    "primary_matched": [
+      "java",
+      "python",
+      "javascript",
+      "mysql",
+      "mongodb",
+      "git",
+      "sdlc",
+      "debugging",
+      "performance optimization",
+      "code reviews"
+    ],
+    "secondary_matched": [
+      "react",
+      "azure",
+      "restful apis"
+    ],
+    "job_id": "jd1"
+  }
+]

@@ -1,0 +1,61 @@
+[
+  {
+    "candidate_id": "f365aee0-f72b-4689-b7a0-3872b23057fd",
+    "name": "Harsh Jaiswal",
+    "email": "harsh.jaiswal@ust.com",
+    "skills": [
+      "Python",
+      "FastAPI",
+      "TypeScript",
+      "RESTful APIs",
+      "JWT",
+      "MongoDB",
+      "MySQL",
+      "Git",
+      "Linux",
+      "Windows",
+      "VMware",
+      "Generative AI",
+      "LLM",
+      "RAG pipeline",
+      "ChromaDB",
+      "ONNX",
+      "Azure OpenAI",
+      "Java",
+      "Python",
+      "JavaScript",
+      "MySQL",
+      "MongoDB",
+      "Git",
+      "SDLC",
+      "Debugging",
+      "Performance Optimization",
+      "Code Reviews"
+    ],
+    "experience_years": 4,
+    "location": "Pune",
+    "education": "Bachelor of Technology in Computer Science & Information Technology"
+  },
+  {
+    "candidate_id": "bf063037-db54-4248-b058-2244e7639eb8",
+    "name": "Prudhvi Rajeev Kumar",
+    "email": "prudhvirajeev.kumar@ust.com",
+    "skills": [
+      "Python",
+      "Java",
+      "React",
+      "TypeScript",
+      "Linux",
+      "Windows",
+      "VMWare",
+      "System Administration",
+      "Application Security",
+      "Full Stack Development",
+      "Automation",
+      "Virtualization"
+    ],
+    "experience_years": 2,
+    "location": "Pune",
+    "education": "Bachelor of Technology in Computer Science"
+  }
+]
