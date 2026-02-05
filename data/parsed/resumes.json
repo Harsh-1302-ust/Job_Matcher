@@ -30,7 +30,10 @@
       "SDLC",
       "Debugging",
       "Performance Optimization",
-      "Code Reviews"
+      "Code Reviews",
+      "Power BI",
+      "Tableau",
+      "Analytical and Problem-Solving Skills"
     ],
     "experience_years": 4,
     "location": "Pune",
@@ -42,7 +45,6 @@
     "email": "prudhvirajeev.kumar@ust.com",
     "skills": [
       "Python",
-      "Java",
       "React",
       "TypeScript",
       "Linux",
@@ -54,8 +56,8 @@
       "Automation",
       "Virtualization"
     ],
-    "experience_years": 2,
-    "location": "Pune",
+    "experience_years": 1,
+    "location": "",
     "education": "Bachelor of Technology in Computer Science"
   }
 ]
