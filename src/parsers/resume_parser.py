@@ -46,7 +46,7 @@ Resume:
     try:
         parsed = json.loads(response.choices[0].message.content)
     except Exception as e:
-        print(f"❌ Failed to parse resume JSON for {pdf_path}: {e}")
+        print(f" Failed to parse resume JSON for {pdf_path}: {e}")
         return
 
     # Ensure fields exist
@@ -72,7 +72,7 @@ Resume:
     # Prevent duplicates by email
     existing_emails = {r["email"] for r in data if r.get("email")}
     if resume_data["email"] in existing_emails:
-        print(f"⚠ Duplicate found. Skipping resume: {resume_data['name']} ({resume_data['email']})")
+        print(f" Duplicate found. Skipping resume: {resume_data['name']} ({resume_data['email']})")
         return
 
     data.append(resume_data)
@@ -80,4 +80,4 @@ Resume:
     with open(RESUME_JSON_PATH, "w") as f:
         json.dump(data, f, indent=2)
 
-    print(f"✔ Parsed resume: {os.path.basename(pdf_path)} | Name: {resume_data['name']} | Email: {resume_data['email']}")
+    print(f" Parsed resume: {os.path.basename(pdf_path)} | Name: {resume_data['name']} | Email: {resume_data['email']}")

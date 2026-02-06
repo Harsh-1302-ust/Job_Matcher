@@ -96,6 +96,6 @@ JD:
         jobs.append(parsed)
         with open(JOB_JSON_PATH, "w") as f:
             json.dump(jobs, f, indent=2)
-        print(f"✔ Parsed JD: {os.path.basename(pdf_path)} | Job ID: {job_id} | Exp: {parsed['min_experience']} yrs")
+        print(f" Parsed JD: {os.path.basename(pdf_path)} | Job ID: {job_id} | Exp: {parsed['min_experience']} yrs")
     else:
-        print(f"⚠ Duplicate JD skipped: {job_id}")
+        print(f" Duplicate JD skipped: {job_id}")

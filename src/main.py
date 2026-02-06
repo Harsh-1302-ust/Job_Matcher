@@ -36,8 +36,8 @@ if __name__ == "__main__":
             match_resumes(job_id, top_n)
 
         elif choice == "4":
-            print("👋 Exiting...")
+            print(" Exiting...")
             break
 
         else:
-            print("❌ Invalid option")
+            print(" Invalid option")

@@ -25,14 +25,14 @@ def match_resumes(job_id: str, top_n: int = 5, show_all: bool = False):
     """
     # Load resumes
     if not os.path.exists(RESUME_JSON_PATH):
-        print("❌ No resumes found. Parse resumes first.")
+        print(" No resumes found. Parse resumes first.")
         return
     with open(RESUME_JSON_PATH) as f:
         resumes = json.load(f)
 
     # Load jobs
     if not os.path.exists(JOB_JSON_PATH):
-        print("❌ No jobs found. Parse JDs first.")
+        print(" No jobs found. Parse JDs first.")
         return
     with open(JOB_JSON_PATH) as f:
         jobs = json.load(f)
@@ -40,7 +40,7 @@ def match_resumes(job_id: str, top_n: int = 5, show_all: bool = False):
     # Find the specific job
     job = next((j for j in jobs if j["job_id"].upper() == job_id.upper()), None)
     if not job:
-        print(f"❌ Job ID '{job_id}' not found in jobs.json")
+        print(f" Job ID '{job_id}' not found in jobs.json")
         return
 
     all_scored = []
@@ -55,7 +55,7 @@ def match_resumes(job_id: str, top_n: int = 5, show_all: bool = False):
     approved_only = [s for s in all_scored if s["status"] == "APPROVED"]
 
     if not approved_only and not show_all:
-        print(f"\n❌ No approved candidates for Job {job_id} (score < 60%)")
+        print(f"\n No approved candidates for Job {job_id} (score < 60%)")
         return
 
     # Sort descending by percentage
@@ -64,7 +64,7 @@ def match_resumes(job_id: str, top_n: int = 5, show_all: bool = False):
 
     if show_all:
         # Print all candidates (debug mode)
-        print(f"\n🔎 All Candidates for Job {job_id} (showing {len(all_scored)})\n")
+        print(f"\n All Candidates for Job {job_id} (showing {len(all_scored)})\n")
         for i, r in enumerate(all_scored, 1):
             print(f"{i}. {r['name']} ({r['email']})")
             print(f"   Score: {r['percentage']}% → {r['status']}")
@@ -76,7 +76,7 @@ def match_resumes(job_id: str, top_n: int = 5, show_all: bool = False):
     else:
         # Print top approved candidates
         approved_top = approved_only[:top_n]
-        print(f"\n🏆 Top {len(approved_top)} Candidates for Job {job_id}\n")
+        print(f"\n Top {len(approved_top)} Candidates for Job {job_id}\n")
         for i, r in enumerate(approved_top, 1):
             print(f"{i}. {r['name']} ({r['email']})")
             print(f"   Score: {r['percentage']}% → {r['status']}")
