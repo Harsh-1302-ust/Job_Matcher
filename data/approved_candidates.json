@@ -44,5 +44,34 @@
       "r"
     ],
     "job_id": "JD_Data_Analyst"
+  },
+  {
+    "candidate_id": "bf063037-db54-4248-b058-2244e7639eb8",
+    "name": "Prudhvi Rajeev Kumar",
+    "email": "prudhvirajeev.kumar@ust.com",
+    "experience_years": 1,
+    "percentage": 77.0,
+    "status": "APPROVED",
+    "location_match": "No",
+    "primary_matched": [
+      "java",
+      "python",
+      "javascript",
+      "mysql",
+      "mongodb",
+      "git",
+      "sdlc",
+      "debugging",
+      "performance optimization",
+      "code reviews"
+    ],
+    "secondary_matched": [
+      "react"
+    ],
+    "education": "Bachelor of Technology in Computer Science",
+    "education_match": "Yes",
+    "education_score": 10,
+    "education_level": 2,
+    "job_id": "jd1"
   }
 ]

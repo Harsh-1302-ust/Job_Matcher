@@ -3,7 +3,14 @@ import json
 import uuid
 from openai import AzureOpenAI
 from parsers.pdf_extractor import extract_text_from_pdf
-from config.settings import *
+from config.settings import (
+    AZURE_OPENAI_API_KEY,
+    AZURE_OPENAI_ENDPOINT,
+    AZURE_OPENAI_API_VERSION,
+    AZURE_OPENAI_DEPLOYMENT,
+    PARSED_DIR,
+    RESUME_JSON_PATH,
+)
 
 client = AzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
@@ -26,9 +33,9 @@ location
 education
 
 Rules:
-- If name or email not found, return empty string
-- skills must be a list of strings
-- experience_years must be an integer
+If name or email not found, return empty string
+skills must be a list of strings
+experience_years must be an integer
 
 Resume:
 {text}
@@ -49,7 +56,7 @@ Resume:
         print(f" Failed to parse resume JSON for {pdf_path}: {e}")
         return
 
-    # Ensure fields exist
+
     resume_data = {
         "candidate_id": str(uuid.uuid4()),
         "name": parsed.get("name", "").strip(),
