@@ -1,7 +1,9 @@
 import os
 import json
 import re
+import asyncio
 from openai import AzureOpenAI
+from asyncio_throttle import Throttler
 from parsers.pdf_extractor import extract_text_from_pdf
 from database.mongo import job_collection
 from config.settings import (
@@ -9,6 +11,8 @@ from config.settings import (
     AZURE_OPENAI_ENDPOINT,
     AZURE_OPENAI_API_VERSION,
     AZURE_OPENAI_DEPLOYMENT,
+    AZURE_API_RPM,
+    AZURE_API_CONCURRENCY
 )
 
 client = AzureOpenAI(
@@ -17,6 +21,7 @@ client = AzureOpenAI(
     api_version=AZURE_OPENAI_API_VERSION
 )
 
+throttler = Throttler(rate_limit=AZURE_API_RPM, period=60)
 
 def normalize_experience(exp_text: str) -> int:
     if not exp_text:
@@ -24,15 +29,13 @@ def normalize_experience(exp_text: str) -> int:
     numbers = re.findall(r"\d+", str(exp_text))
     return int(numbers[0]) if numbers else 0
 
-
 def clean_llm_json(text: str) -> str:
     text = text.strip()
     if text.startswith("```"):
         text = re.sub(r"^```json|```$", "", text, flags=re.MULTILINE).strip()
     return text
 
-
-def parse_jd(pdf_path: str):
+async def parse_jd(pdf_path: str):
     text = extract_text_from_pdf(pdf_path)
     job_id = os.path.splitext(os.path.basename(pdf_path))[0]
 
@@ -48,14 +51,15 @@ JD:
 {text}
 """
 
-    response = client.chat.completions.create(
-        model=AZURE_OPENAI_DEPLOYMENT,
-        messages=[
-            {"role": "system", "content": "You are a job description parser"},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0
-    )
+    async with throttler:
+        response = client.chat.completions.create(
+            model=AZURE_OPENAI_DEPLOYMENT,
+            messages=[
+                {"role": "system", "content": "You are a job description parser"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0
+        )
 
     raw_content = response.choices[0].message.content
     parsed = json.loads(clean_llm_json(raw_content))
@@ -74,5 +78,4 @@ JD:
         return
 
     job_collection.insert_one(parsed)
-
-    print(f"✔ Parsed JD: {os.path.basename(pdf_path)} | Job ID: {job_id} | Exp: {parsed['min_experience']} yrs")
+    print(f"✔ Parsed JD: {pdf_path}")
