@@ -1,9 +1,10 @@
-import json
 import os
 from parsers.resume_parser import parse_resume
 from parsers.jd_parser import parse_jd
 from matcher.matcher import match_resumes
-from config.settings import JOB_JSON_PATH, RESUME_INPUT_DIR, JD_INPUT_DIR
+from config.settings import RESUME_INPUT_DIR, JD_INPUT_DIR
+
+from database.mongo import job_collection   # make sure this exists
 
 
 def menu():
@@ -13,12 +14,10 @@ def menu():
     print("3. Match resumes with job")
     print("4. Exit")
 
+
 def list_job_ids():
-    # List all available Job IDs from jobs.json
-    if not os.path.exists(JOB_JSON_PATH):
-        return []
-    with open(JOB_JSON_PATH) as f:
-        jobs = json.load(f)
+    # Fetch Job IDs from MongoDB instead of JSON
+    jobs = job_collection.find({}, {"job_id": 1, "_id": 0})
     return [job["job_id"] for job in jobs]
 
 
@@ -70,14 +69,8 @@ if __name__ == "__main__":
             match_resumes(job_id, top_n)
 
         elif choice == "4":
-            print(" Exiting...")
+            print("Exiting...")
             break
 
         else:
-            print(" Invalid option")
-
-
-
-
-
-
+            print("Invalid option")

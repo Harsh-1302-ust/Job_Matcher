@@ -2,3 +2,4 @@ pypdf
 openai
 python-dotenv
 pydantic
+pymongo

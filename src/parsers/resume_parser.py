@@ -1,17 +1,16 @@
-import os
-import json
 import uuid
+import json
 from openai import AzureOpenAI
+from database.mongo import resume_collection
 from parsers.pdf_extractor import extract_text_from_pdf
 from config.settings import (
     AZURE_OPENAI_API_KEY,
     AZURE_OPENAI_ENDPOINT,
     AZURE_OPENAI_API_VERSION,
     AZURE_OPENAI_DEPLOYMENT,
-    PARSED_DIR,
-    RESUME_JSON_PATH,
 )
 
+# Initialize Azure OpenAI client
 client = AzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
@@ -20,11 +19,12 @@ client = AzureOpenAI(
 
 
 def parse_resume(pdf_path: str):
+    """Parse resume PDF and store in MongoDB (no temp JSON)."""
+
     text = extract_text_from_pdf(pdf_path)
 
     prompt = f"""
 Extract resume details in STRICT JSON with these fields ONLY:
-
 name
 email
 skills
@@ -33,9 +33,9 @@ location
 education
 
 Rules:
-If name or email not found, return empty string
-skills must be a list of strings
-experience_years must be an integer
+- name/email → empty string if not found
+- skills → list of strings
+- experience_years → integer only
 
 Resume:
 {text}
@@ -53,38 +53,34 @@ Resume:
     try:
         parsed = json.loads(response.choices[0].message.content)
     except Exception as e:
-        print(f" Failed to parse resume JSON for {pdf_path}: {e}")
+        print(f" JSON parse failed for {pdf_path}: {e}")
         return
-
 
     resume_data = {
         "candidate_id": str(uuid.uuid4()),
         "name": parsed.get("name", "").strip(),
-        "email": parsed.get("email", "").strip(),
+        "email": parsed.get("email", "").strip().lower(),
         "skills": parsed.get("skills", []),
-        "experience_years": parsed.get("experience_years", 0),
-        "location": parsed.get("location", ""),
-        "education": parsed.get("education", "")
+        "experience_years": int(parsed.get("experience_years", 0)),
+        "location": parsed.get("location", "").strip(),
+        "education": parsed.get("education", "").strip()
     }
 
-    os.makedirs(PARSED_DIR, exist_ok=True)
-
-    # Load existing resumes
-    if os.path.exists(RESUME_JSON_PATH):
-        with open(RESUME_JSON_PATH, "r") as f:
-            data = json.load(f)
-    else:
-        data = []
-
-    # Prevent duplicates by email
-    existing_emails = {r["email"] for r in data if r.get("email")}
-    if resume_data["email"] in existing_emails:
-        print(f" Duplicate found. Skipping resume: {resume_data['name']} ({resume_data['email']})")
+    # 🚫 Skip resumes without email (ATS rule)
+    if not resume_data["email"]:
+        print(f"Resume skipped (no email): {pdf_path}")
         return
 
-    data.append(resume_data)
+    # 🔐 Prevent duplicates (email = unique)
+    if resume_collection.find_one({"email": resume_data["email"]}):
+        print(f"Duplicate resume skipped: {resume_data['email']}")
+        return
 
-    with open(RESUME_JSON_PATH, "w") as f:
-        json.dump(data, f, indent=2)
+    resume_collection.insert_one(resume_data)
 
-    print(f" Parsed resume: {os.path.basename(pdf_path)} | Name: {resume_data['name']} | Email: {resume_data['email']}")
+    print(
+        f"Stored Resume | "
+        f"Name: {resume_data['name']} | "
+        f"Email: {resume_data['email']} | "
+        f"Exp: {resume_data['experience_years']} yrs"
+    )

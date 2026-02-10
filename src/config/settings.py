@@ -10,9 +10,4 @@ AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 
 RESUME_INPUT_DIR = "data/input/resumes"
 JD_INPUT_DIR = "data/input/jd"
-PARSED_DIR = "data/parsed"
-
-APPROVED_JSON_PATH = "data/approved_candidates.json"
-
-RESUME_JSON_PATH = f"{PARSED_DIR}/resumes.json"
-JOB_JSON_PATH = f"{PARSED_DIR}/jobs.json"
+MONGO_URI = os.getenv("MONGO_URI")

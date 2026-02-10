@@ -3,13 +3,12 @@ import json
 import re
 from openai import AzureOpenAI
 from parsers.pdf_extractor import extract_text_from_pdf
+from database.mongo import job_collection
 from config.settings import (
     AZURE_OPENAI_API_KEY,
     AZURE_OPENAI_ENDPOINT,
     AZURE_OPENAI_API_VERSION,
     AZURE_OPENAI_DEPLOYMENT,
-    PARSED_DIR,
-    JOB_JSON_PATH,
 )
 
 client = AzureOpenAI(
@@ -68,23 +67,12 @@ JD:
     if isinstance(education, list):
         parsed["education"] = " / ".join(str(e) for e in education)
 
-
     parsed["job_id"] = job_id
 
-    os.makedirs(PARSED_DIR, exist_ok=True)
+    if job_collection.find_one({"job_id": job_id}):
+        print(f"⚠ Duplicate JD skipped: {job_id}")
+        return
 
-    try:
-        with open(JOB_JSON_PATH, "r") as f:
-            jobs = json.load(f)
-    except FileNotFoundError:
-        jobs = []
+    job_collection.insert_one(parsed)
 
-    #  Avoid duplicate Job IDs
-    existing_ids = {job["job_id"] for job in jobs}
-    if job_id not in existing_ids:
-        jobs.append(parsed)
-        with open(JOB_JSON_PATH, "w") as f:
-            json.dump(jobs, f, indent=2)
-        print(f" Parsed JD: {os.path.basename(pdf_path)} | Job ID: {job_id} | Exp: {parsed['min_experience']} yrs")
-    else:
-        print(f" Duplicate JD skipped: {job_id}")
+    print(f"✔ Parsed JD: {os.path.basename(pdf_path)} | Job ID: {job_id} | Exp: {parsed['min_experience']} yrs")
