@@ -4,5 +4,3 @@ python-dotenv
 pydantic
 pymongo
 asyncio-throttle
-# aiohttp
-# typing-extensions
