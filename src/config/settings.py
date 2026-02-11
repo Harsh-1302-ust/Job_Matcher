@@ -18,7 +18,6 @@ MONGO_URI = get_env("MONGO_URI")
 RESUME_INPUT_DIR = "data/input/resumes"
 JD_INPUT_DIR = "data/input/jd"
 
-# Rate limit settings
 AZURE_API_RPM = 100            # requests per minute
 AZURE_API_CONCURRENCY = 20     # max parallel calls
-APPROVAL_THRESHOLD = 50        # for matcher
+

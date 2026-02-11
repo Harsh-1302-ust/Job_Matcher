@@ -1,6 +1,6 @@
-from database.mongo import resume_collection, job_collection, approved_collection
+from database.mongo import resume_collection, job_collection
 import re
-from config.settings import APPROVAL_THRESHOLD
+
 
 # --- normalizers
 def normalize_skill(skill: str) -> str:
@@ -52,18 +52,9 @@ def match_resumes(job_id: str, top_n: int = 5):
     job_exp = job.get("min_experience", 0)
     job_edu = normalize_education(job.get("education", ""))
 
-    approved_collection.delete_many({"job_id": job_id})
-
     for resume in resumes:
         score_data = score_resume(resume, job_primary, job_secondary, job_location, job_exp, job_edu)
         results.append(score_data)
-
-        if score_data["score"] >= APPROVAL_THRESHOLD:
-            approved_collection.update_one(
-                {"candidate_id": resume["candidate_id"], "job_id": job_id},
-                {"$set": {**score_data, "job_id": job_id}},
-                upsert=True,
-            )
 
     results.sort(key=lambda x: x["score"], reverse=True)
 
@@ -79,10 +70,7 @@ def match_resumes(job_id: str, top_n: int = 5):
             Education Score:       {r['education_score']}
             -----------------------------------
             TOTAL SCORE: {r['score']}%
-            STATUS: {r['status']}
             """)
-    approved_count = approved_collection.count_documents({"job_id": job_id})
-    print(f"✅ Approved Candidates (>= {APPROVAL_THRESHOLD}%): {approved_count}")
 
 def score_resume(resume, job_primary, job_secondary, job_location, job_exp, job_edu):
     resume_skills = set(normalize_skill(s) for s in resume.get("skills", []))
@@ -111,5 +99,4 @@ def score_resume(resume, job_primary, job_secondary, job_location, job_exp, job_
         "experience_score": round(experience_score,2),
         "location_score": round(location_score,2),
         "education_score": round(education_score,2),
-        "status": "APPROVED" if total_score>=APPROVAL_THRESHOLD else "REJECTED"
     }
