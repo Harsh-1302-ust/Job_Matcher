@@ -1,4 +1,4 @@
-from database.mongo import resume_collection, job_collection
+from database.mongo import resume_collection, job_collection,approved_collection
 import re
 
 
@@ -32,16 +32,28 @@ SECONDARY_WEIGHT = 20
 EXPERIENCE_WEIGHT = 15
 LOCATION_WEIGHT = 5
 EDUCATION_WEIGHT = 10
+APPROVAL_THRESHOLD = 50
 
 def match_resumes(job_id: str, top_n: int = 5):
+
     job = job_collection.find_one({"job_id": job_id})
     if not job:
-        print("Job not found")
+        print("❌ Job not found")
         return
 
-    resumes = list(resume_collection.find({}, {"_id":0, "candidate_id":1,"name":1,"email":1,"skills":1,"experience_years":1,"location":1,"education":1}))
+    resumes = list(resume_collection.find({}, {
+        "_id": 0,
+        "candidate_id": 1,
+        "name": 1,
+        "email": 1,
+        "skills": 1,
+        "experience_years": 1,
+        "location": 1,
+        "education": 1
+    }))
+
     if not resumes:
-        print(" No resumes found")
+        print("❌ No resumes found")
         return
 
     results = []
@@ -52,25 +64,65 @@ def match_resumes(job_id: str, top_n: int = 5):
     job_exp = job.get("min_experience", 0)
     job_edu = normalize_education(job.get("education", ""))
 
+    # 🔹 Score all resumes
     for resume in resumes:
-        score_data = score_resume(resume, job_primary, job_secondary, job_location, job_exp, job_edu)
+        score_data = score_resume(
+            resume,
+            job_primary,
+            job_secondary,
+            job_location,
+            job_exp,
+            job_edu
+        )
         results.append(score_data)
 
+    # 🔹 Sort by total score
     results.sort(key=lambda x: x["score"], reverse=True)
 
-    print(f"\nScores for Job ID: {job_id}\n{'='*70}")
-    for r in results[:top_n]:
+    print(f"\n Scores for Job ID: {job_id}")
+    print("=" * 70)
+
+    print(f"\n Top {top_n} Candidates")
+    print("-" * 50)
+
+    for idx, r in enumerate(results[:top_n], start=1):
         print(f"""
-            Name: {r['name']}
-            Email: {r['email']}
-            Primary Skill Score:   {r['primary_score']}
-            Secondary Skill Score: {r['secondary_score']}
-            Experience Score:      {r['experience_score']}
-            Location Score:        {r['location_score']}
-            Education Score:       {r['education_score']}
-            -----------------------------------
-            TOTAL SCORE: {r['score']}%
-            """)
+    Rank: {idx}
+    Name: {r['name']}
+    Email: {r['email']}
+    TOTAL SCORE: {r['score']}%
+    -----------------------------------
+    """)
+
+    approved_candidates = [r for r in results if r["score"] >= APPROVAL_THRESHOLD]
+
+    print(f"\n Approved Candidates (>= {APPROVAL_THRESHOLD}%)")
+    print("-" * 50)
+
+    if not approved_candidates:
+        print("No candidates met the approval threshold.")
+    else:
+        for r in approved_candidates:
+            print(f"{r['name']} - {r['score']}%")
+
+    approved_collection.delete_many({"job_id": job_id})
+
+    for r in approved_candidates:
+        approved_collection.insert_one({
+            "candidate_id": r["candidate_id"],
+            "job_id": job_id,
+            "name": r["name"],
+            "email": r["email"],
+            "skills": resume_collection.find_one({"candidate_id": r["candidate_id"]}, {"_id": 0, "skills": 1}).get("skills", []),
+            "score": r["score"],
+            "primary_score": r["primary_score"],
+            "secondary_score": r["secondary_score"],
+            "experience_score": r["experience_score"],
+            "location_score": r["location_score"],
+            "education_score": r["education_score"]
+        })
+
+    print(f"\n {len(approved_candidates)} candidates stored in approved_candidates collection")
 
 def score_resume(resume, job_primary, job_secondary, job_location, job_exp, job_edu):
     resume_skills = set(normalize_skill(s) for s in resume.get("skills", []))

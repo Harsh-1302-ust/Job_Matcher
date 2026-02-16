@@ -11,8 +11,7 @@ from config.settings import (
     AZURE_OPENAI_ENDPOINT,
     AZURE_OPENAI_API_VERSION,
     AZURE_OPENAI_DEPLOYMENT,
-    AZURE_API_RPM,
-    AZURE_API_CONCURRENCY
+    AZURE_API_RPM
 )
 
 client = AzureOpenAI(
@@ -74,8 +73,8 @@ JD:
     parsed["job_id"] = job_id
 
     if job_collection.find_one({"job_id": job_id}):
-        print(f"⚠ Duplicate JD skipped: {job_id}")
+        print(f" Duplicate JD skipped: {job_id}")
         return
 
     job_collection.insert_one(parsed)
-    print(f"✔ Parsed JD: {pdf_path}")
+    print(f"Parsed JD: {pdf_path}")
