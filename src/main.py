@@ -2,65 +2,113 @@ import os
 import asyncio
 from parsers.resume_parser import parse_resume
 from parsers.jd_parser import parse_jd
-from matcher.matcher import match_resumes
-from config.settings import RESUME_INPUT_DIR, JD_INPUT_DIR
-from database.mongo import job_collection
+from matcher.matcher import match_resume_to_jobs
+from database.mongo import resume_collection
 
-def menu():
-    print("\n=== Resume Matching System ===")
-    print("1. Parse resumes")
-    print("2. Parse job descriptions")
-    print("3. Match resumes with job")
-    print("4. Exit")
+RESUME_DIR = "data/input/resumes"
+JD_DIR = "data/input/jd"
 
-def list_job_ids():
-    jobs = job_collection.find({}, {"job_id":1,"_id":0})
-    return [job["job_id"] for job in jobs]
 
+# -----------------------------------
+# Parse all resumes
+# -----------------------------------
 async def parse_all_resumes():
-    pdf_files = [os.path.join(RESUME_INPUT_DIR,f) for f in os.listdir(RESUME_INPUT_DIR) if f.endswith(".pdf")]
-    await asyncio.gather(*(parse_resume(f) for f in pdf_files))
+    files = [
+        os.path.join(RESUME_DIR, f)
+        for f in os.listdir(RESUME_DIR)
+        if f.lower().endswith(".pdf")
+    ]
 
+    if not files:
+        print("No resume files found.")
+        return
+
+    await asyncio.gather(*(parse_resume(f) for f in files))
+    print("All resumes parsed successfully.\n")
+
+
+# -----------------------------------
+# Parse all JDs
+# -----------------------------------
 async def parse_all_jds():
-    pdf_files = [os.path.join(JD_INPUT_DIR,f) for f in os.listdir(JD_INPUT_DIR) if f.endswith(".pdf")]
-    await asyncio.gather(*(parse_jd(f) for f in pdf_files))
+    files = [
+        os.path.join(JD_DIR, f)
+        for f in os.listdir(JD_DIR)
+        if f.lower().endswith(".pdf")
+    ]
 
-if __name__ == "__main__":
+    if not files:
+        print("No JD files found.")
+        return
+
+    await asyncio.gather(*(parse_jd(f) for f in files))
+    print("All JDs parsed successfully.\n")
+
+
+# -----------------------------------
+# Main Continuous Menu
+# -----------------------------------
+def main_menu():
     while True:
-        menu()
+        print("\n========== ATS SYSTEM ==========")
+        print("1. Parse Resumes")
+        print("2. Parse JDs")
+        print("3. Match Resume → Top JDs")
+        print("4. Exit")
+
         choice = input("Enter choice: ").strip()
 
-        if choice=="1":
-            print("\nParsing resumes...")
+        if choice == "1":
             asyncio.run(parse_all_resumes())
-        elif choice=="2":
-            print("\nParsing JDs...")
+
+        elif choice == "2":
             asyncio.run(parse_all_jds())
-        elif choice=="3":
-            job_ids = list_job_ids()
-            if not job_ids:
-                print("No Job Descriptions found.")
+
+        elif choice == "3":
+
+            resumes = list(resume_collection.find({}, {"candidate_id": 1, "name": 1, "email": 1}))
+
+            if not resumes:
+                print("No resumes found in database.\n")
                 continue
-            for idx,jid in enumerate(job_ids,1):
-                print(f"{idx}. {jid}")
-            selected = input("Select Job ID: ").strip()
-            if not selected:
-                job_id = job_ids[0]
-            elif selected.isdigit() and 1<=int(selected)<=len(job_ids):
-                job_id = job_ids[int(selected)-1]
-            else:
-                job_id = selected
-                if job_id not in job_ids:
-                    print("Invalid Job ID")
+
+            print("\nAvailable Candidates:")
+            for idx, r in enumerate(resumes, 1):
+                print(f"{idx}. {r.get('name', 'Unknown')} | {r.get('email')} | ID: {r['candidate_id']}")
+
+            selected = input("\nEnter candidate number or candidate_id: ").strip()
+
+            # Handle numeric selection
+            if selected.isdigit():
+                selected_index = int(selected) - 1
+                if 0 <= selected_index < len(resumes):
+                    candidate_id = resumes[selected_index]["candidate_id"]
+                else:
+                    print("Invalid selection.\n")
                     continue
-            try:
-                top_n_input = input("Top N candidates to display: ").strip()
-                top_n = int(top_n_input) if top_n_input else 5
-            except:
-                top_n=5
-            match_resumes(job_id, top_n)
-        elif choice=="4":
-            print("Exiting...")
+            else:
+                candidate_id = selected
+
+            results = match_resume_to_jobs(candidate_id, 10)
+
+            if not results:
+                print("No matching jobs found.\n")
+            else:
+                print("\nTop Matching Jobs:\n")
+                for idx, job in enumerate(results, 1):
+                    print(f"{idx}. Job ID: {job.get('job_id')}")
+                    print(f"   Title: {job.get('job_title', 'N/A')}")
+                    print(f"   Score: {job.get('total_score', 0)}")
+                    print()
+
+
+        elif choice == "4":
+            print("Exiting system. Goodbye!")
             break
+
         else:
-            print("Invalid option")
+            print("Invalid choice. Please select 1-4.\n")
+
+
+if __name__ == "__main__":
+    main_menu()

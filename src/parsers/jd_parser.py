@@ -1,80 +1,150 @@
 import os
 import json
-import re
 import asyncio
-from openai import AzureOpenAI
-from asyncio_throttle import Throttler
-from parsers.pdf_extractor import extract_text_from_pdf
+from openai import AsyncAzureOpenAI
 from database.mongo import job_collection
+from parsers.pdf_extractor import extract_text_from_pdf
 from config.settings import (
     AZURE_OPENAI_API_KEY,
     AZURE_OPENAI_ENDPOINT,
     AZURE_OPENAI_API_VERSION,
     AZURE_OPENAI_DEPLOYMENT,
-    AZURE_API_RPM
+    AZURE_CONCURRENCY
 )
 
-client = AzureOpenAI(
+client = AsyncAzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
     api_version=AZURE_OPENAI_API_VERSION
 )
 
-throttler = Throttler(rate_limit=AZURE_API_RPM, period=60)
+semaphore = asyncio.Semaphore(AZURE_CONCURRENCY)
 
-def normalize_experience(exp_text: str) -> int:
-    if not exp_text:
-        return 0
-    numbers = re.findall(r"\d+", str(exp_text))
-    return int(numbers[0]) if numbers else 0
 
-def clean_llm_json(text: str) -> str:
-    text = text.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```json|```$", "", text, flags=re.MULTILINE).strip()
-    return text
+# -----------------------------
+# 🔥 ENTERPRISE JD PROMPT
+# -----------------------------
+def build_prompt(text: str) -> str:
+    return f"""
+You are an enterprise-grade ATS Job Description parser.
 
-async def parse_jd(pdf_path: str):
-    text = extract_text_from_pdf(pdf_path)
-    job_id = os.path.splitext(os.path.basename(pdf_path))[0]
+Your task is to extract structured hiring intelligence.
 
-    prompt = f"""
-Extract job description in JSON only with fields:
-primary_skills, secondary_skills, min_experience, location, education
+Follow internal reasoning carefully:
 
-Rules:
-- min_experience must be a number (years only)
-- If location is not mentioned, return null
+STEP 1:
+Extract job title if mentioned.
 
-JD:
+STEP 2:
+Extract ALL technical skills mentioned.
+
+STEP 3:
+Classify skills:
+
+PRIMARY SKILLS:
+- Core mandatory technologies
+- Mentioned as required
+- Core stack of the role
+- Frequently referenced
+
+SECONDARY SKILLS:
+- Nice-to-have
+- Supporting tools
+- Optional technologies
+
+STEP 4:
+Extract experience:
+- Identify minimum experience required
+- Identify maximum experience if mentioned
+- If range like 3-5 years → min=3, max=5
+- If only “3+ years” → min=3, max=null
+- Return integers only
+
+STEP 5:
+Extract location.
+
+STEP 6:
+Extract required education.
+
+CRITICAL:
+- Think step-by-step internally
+- Do NOT show reasoning
+- Return STRICT JSON only
+- No explanation
+- No markdown
+- Valid JSON only
+
+OUTPUT FORMAT EXACTLY:
+
+{{
+  "job_title": "string",
+  "primary_skills": ["skill"],
+  "secondary_skills": ["skill"],
+  "min_experience": integer,
+  "max_experience": integer or null,
+  "location": "string",
+  "education": "string"
+}}
+
+JD TEXT:
 {text}
 """
 
-    async with throttler:
-        response = client.chat.completions.create(
+
+# -----------------------------
+# 🔥 SAFE JSON PARSER
+# -----------------------------
+def safe_json_load(content: str):
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        # Attempt small fix if model adds extra text
+        content = content.strip()
+        start = content.find("{")
+        end = content.rfind("}") + 1
+        return json.loads(content[start:end])
+
+
+# -----------------------------
+# 🚀 MAIN PARSER
+# -----------------------------
+async def parse_jd(pdf_path: str):
+    async with semaphore:
+        text = extract_text_from_pdf(pdf_path)
+        job_id = os.path.splitext(os.path.basename(pdf_path))[0]
+
+        response = await client.chat.completions.create(
             model=AZURE_OPENAI_DEPLOYMENT,
             messages=[
-                {"role": "system", "content": "You are a job description parser"},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "You are a precise enterprise ATS job parser."},
+                {"role": "user", "content": build_prompt(text)}
             ],
             temperature=0
         )
 
-    raw_content = response.choices[0].message.content
-    parsed = json.loads(clean_llm_json(raw_content))
+        parsed = safe_json_load(response.choices[0].message.content)
 
-    parsed["min_experience"] = normalize_experience(parsed.get("min_experience"))
-    parsed["location"] = parsed.get("location") or "Not specified"
+        job_data = {
+            "job_id": job_id,
+            "job_title": parsed.get("job_title", "").lower(),
+            "primary_skills": list(set(s.lower() for s in parsed.get("primary_skills", []))),
+            "secondary_skills": list(set(s.lower() for s in parsed.get("secondary_skills", []))),
+            "min_experience": int(parsed.get("min_experience", 0)),
+            "max_experience": (
+                int(parsed["max_experience"])
+                if parsed.get("max_experience") is not None
+                else None
+            ),
+            "location": parsed.get("location", "").lower(),
+            "education": parsed.get("education", "").lower()
+        }
 
-    education = parsed.get("education")
-    if isinstance(education, list):
-        parsed["education"] = " / ".join(str(e) for e in education)
+        # Remove overlap between primary & secondary
+        job_data["secondary_skills"] = [
+            s for s in job_data["secondary_skills"]
+            if s not in job_data["primary_skills"]
+        ]
 
-    parsed["job_id"] = job_id
-
-    if job_collection.find_one({"job_id": job_id}):
-        print(f" Duplicate JD skipped: {job_id}")
-        return
-
-    job_collection.insert_one(parsed)
-    print(f"Parsed JD: {pdf_path}")
+        if not job_collection.find_one({"job_id": job_id}):
+            job_collection.insert_one(job_data)
+            print(f"Stored JD: {job_id}")

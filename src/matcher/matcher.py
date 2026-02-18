@@ -1,154 +1,86 @@
-from database.mongo import resume_collection, job_collection,approved_collection
-import re
-
-
-# --- normalizers
-def normalize_skill(skill: str) -> str:
-    skill = (skill or "").lower()
-    skill = re.sub(r"[^a-z0-9\s]", " ", skill)
-    skill = re.sub(r"\s+", " ", skill)
-    return skill.strip()
-
-def normalize_education(edu: str) -> dict:
-    s = (edu or "").lower()
-    s = re.sub(r"[^a-z0-9\s]", " ", s)
-    s = re.sub(r"\s+", " ", s).strip()
-
-    if any(k in s for k in ["phd", "doctorate", "doctor"]):
-        level = 4
-    elif any(k in s for k in ["master", "ms", "msc", "mba"]):
-        level = 3
-    elif any(k in s for k in ["bachelor", "ba", "bs", "bsc"]):
-        level = 2
-    elif any(k in s for k in ["associate", "diploma"]):
-        level = 1
-    else:
-        level = 0
-
-    return {"level": level, "text": s}
+from database.mongo import resume_collection, job_collection
 
 PRIMARY_WEIGHT = 50
 SECONDARY_WEIGHT = 20
 EXPERIENCE_WEIGHT = 15
 LOCATION_WEIGHT = 5
 EDUCATION_WEIGHT = 10
-APPROVAL_THRESHOLD = 50
 
-def match_resumes(job_id: str, top_n: int = 5):
+def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
 
-    job = job_collection.find_one({"job_id": job_id})
-    if not job:
-        print("❌ Job not found")
-        return
+    resume = resume_collection.find_one({"candidate_id": candidate_id})
+    if not resume:
+        print("Resume not found")
+        return []
 
-    resumes = list(resume_collection.find({}, {
-        "_id": 0,
-        "candidate_id": 1,
-        "name": 1,
-        "email": 1,
-        "skills": 1,
-        "experience_years": 1,
-        "location": 1,
-        "education": 1
-    }))
+    pipeline = [
+        {
+            "$addFields": {
+                "primary_match": {
+                    "$size": {
+                        "$setIntersection": ["$primary_skills", resume["primary_skills"]]
+                    }
+                },
+                "secondary_match": {
+                    "$size": {
+                        "$setIntersection": ["$secondary_skills", resume["secondary_skills"]]
+                    }
+                }
+            }
+        },
+        {
+            "$addFields": {
+                "primary_score": {
+                    "$multiply": [
+                        {"$divide": ["$primary_match", {"$max": [{"$size": "$primary_skills"}, 1]}]},
+                        PRIMARY_WEIGHT
+                    ]
+                },
+                "secondary_score": {
+                    "$multiply": [
+                        {"$divide": ["$secondary_match", {"$max": [{"$size": "$secondary_skills"}, 1]}]},
+                        SECONDARY_WEIGHT
+                    ]
+                }
+            }
+        },
+        {
+            "$addFields": {
+                "experience_score": {
+                    "$cond": [
+                        {"$gte": [resume["experience_years"], "$min_experience"]},
+                        EXPERIENCE_WEIGHT,
+                        0
+                    ]
+                }
+            }
+        },
+        {
+            "$addFields": {
+                "total_score": {
+                    "$round": [
+                        {"$add": ["$primary_score", "$secondary_score", "$experience_score"]},
+                        2
+                    ]
+                }
+            }
+        },
+        {"$sort": {"total_score": -1}},
+        {"$limit": top_n},
+        {
+            "$project": {
+                "_id": 0,
+                "job_id": 1,
+                "job_title": 1,
+                "primary_match": 1,
+                "secondary_match": 1,
+                "total_score": 1
+            }
+        }
+    ]
 
-    if not resumes:
-        print("❌ No resumes found")
-        return
+    
 
-    results = []
+    return list(job_collection.aggregate(pipeline))
 
-    job_primary = set(normalize_skill(s) for s in job.get("primary_skills", []))
-    job_secondary = set(normalize_skill(s) for s in job.get("secondary_skills", []))
-    job_location = (job.get("location") or "").lower().strip()
-    job_exp = job.get("min_experience", 0)
-    job_edu = normalize_education(job.get("education", ""))
 
-    # 🔹 Score all resumes
-    for resume in resumes:
-        score_data = score_resume(
-            resume,
-            job_primary,
-            job_secondary,
-            job_location,
-            job_exp,
-            job_edu
-        )
-        results.append(score_data)
-
-    # 🔹 Sort by total score
-    results.sort(key=lambda x: x["score"], reverse=True)
-
-    print(f"\n Scores for Job ID: {job_id}")
-    print("=" * 70)
-
-    print(f"\n Top {top_n} Candidates")
-    print("-" * 50)
-
-    for idx, r in enumerate(results[:top_n], start=1):
-        print(f"""
-    Rank: {idx}
-    Name: {r['name']}
-    Email: {r['email']}
-    TOTAL SCORE: {r['score']}%
-    -----------------------------------
-    """)
-
-    approved_candidates = [r for r in results if r["score"] >= APPROVAL_THRESHOLD]
-
-    print(f"\n Approved Candidates (>= {APPROVAL_THRESHOLD}%)")
-    print("-" * 50)
-
-    if not approved_candidates:
-        print("No candidates met the approval threshold.")
-    else:
-        for r in approved_candidates:
-            print(f"{r['name']} - {r['score']}%")
-
-    approved_collection.delete_many({"job_id": job_id})
-
-    for r in approved_candidates:
-        approved_collection.insert_one({
-            "candidate_id": r["candidate_id"],
-            "job_id": job_id,
-            "name": r["name"],
-            "email": r["email"],
-            "skills": resume_collection.find_one({"candidate_id": r["candidate_id"]}, {"_id": 0, "skills": 1}).get("skills", []),
-            "score": r["score"],
-            "primary_score": r["primary_score"],
-            "secondary_score": r["secondary_score"],
-            "experience_score": r["experience_score"],
-            "location_score": r["location_score"],
-            "education_score": r["education_score"]
-        })
-
-    print(f"\n {len(approved_candidates)} candidates stored in approved_candidates collection")
-
-def score_resume(resume, job_primary, job_secondary, job_location, job_exp, job_edu):
-    resume_skills = set(normalize_skill(s) for s in resume.get("skills", []))
-    resume_exp = resume.get("experience_years", 0)
-    resume_loc = (resume.get("location") or "").lower().strip()
-    resume_edu = normalize_education(resume.get("education", ""))
-
-    primary_matched = resume_skills & job_primary
-    secondary_matched = resume_skills & job_secondary
-
-    primary_score = (len(primary_matched) / max(len(job_primary),1)) * PRIMARY_WEIGHT
-    secondary_score = (len(secondary_matched) / max(len(job_secondary),1)) * SECONDARY_WEIGHT
-    experience_score = EXPERIENCE_WEIGHT if resume_exp>=job_exp else (resume_exp/max(job_exp,1))*EXPERIENCE_WEIGHT
-    location_score = LOCATION_WEIGHT if (not job_location or job_location=="not specified" or resume_loc in job_location or job_location in resume_loc) else 0
-    education_score = EDUCATION_WEIGHT if not job_edu["text"] or resume_edu["level"]>=job_edu["level"] else 0
-
-    total_score = round(primary_score+secondary_score+experience_score+location_score+education_score,2)
-
-    return {
-        "candidate_id": resume.get("candidate_id"),
-        "name": resume.get("name","Unknown"),
-        "email": resume.get("email","N/A"),
-        "score": total_score,
-        "primary_score": round(primary_score,2),
-        "secondary_score": round(secondary_score,2),
-        "experience_score": round(experience_score,2),
-        "location_score": round(location_score,2),
-        "education_score": round(education_score,2),
-    }
