@@ -74,7 +74,7 @@ def main_menu():
 
             print("\nAvailable Candidates:")
             for idx, r in enumerate(resumes, 1):
-                print(f"{idx}. {r.get('name', 'Unknown')} | {r.get('email')} | ID: {r['candidate_id']}")
+                print(f"{idx}. {r.get('name', 'Unknown')} | {r.get('email')}")
 
             selected = input("\nEnter candidate number or candidate_id: ").strip()
 

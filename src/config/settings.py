@@ -19,4 +19,4 @@ RESUME_INPUT_DIR = "data/input/resumes"
 JD_INPUT_DIR = "data/input/jd"
 
 
-AZURE_CONCURRENCY = 10
+AZURE_CONCURRENCY = 100

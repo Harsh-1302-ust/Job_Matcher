@@ -6,6 +6,7 @@ EXPERIENCE_WEIGHT = 15
 LOCATION_WEIGHT = 5
 EDUCATION_WEIGHT = 10
 
+
 def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
 
     resume = resume_collection.find_one({"candidate_id": candidate_id})
@@ -15,15 +16,23 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
 
     pipeline = [
         {
+            "$match": {
+                "$or": [
+                    {"primary_skills": {"$in": resume.get("primary_skills", [])}},
+                    {"secondary_skills": {"$in": resume.get("secondary_skills", [])}}
+                ]
+            }
+        },
+        {
             "$addFields": {
                 "primary_match": {
                     "$size": {
-                        "$setIntersection": ["$primary_skills", resume["primary_skills"]]
+                        "$setIntersection": ["$primary_skills", resume.get("primary_skills", [])]
                     }
                 },
                 "secondary_match": {
                     "$size": {
-                        "$setIntersection": ["$secondary_skills", resume["secondary_skills"]]
+                        "$setIntersection": ["$secondary_skills", resume.get("secondary_skills", [])]
                     }
                 }
             }
@@ -41,14 +50,10 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
                         {"$divide": ["$secondary_match", {"$max": [{"$size": "$secondary_skills"}, 1]}]},
                         SECONDARY_WEIGHT
                     ]
-                }
-            }
-        },
-        {
-            "$addFields": {
+                },
                 "experience_score": {
                     "$cond": [
-                        {"$gte": [resume["experience_years"], "$min_experience"]},
+                        {"$gte": [resume.get("experience_years", 0), "$min_experience"]},
                         EXPERIENCE_WEIGHT,
                         0
                     ]
@@ -59,14 +64,22 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
             "$addFields": {
                 "total_score": {
                     "$round": [
-                        {"$add": ["$primary_score", "$secondary_score", "$experience_score"]},
+                        {
+                            "$add": [
+                                "$primary_score",
+                                "$secondary_score",
+                                "$experience_score"
+                            ]
+                        },
                         2
                     ]
                 }
             }
         },
+
         {"$sort": {"total_score": -1}},
         {"$limit": top_n},
+
         {
             "$project": {
                 "_id": 0,
@@ -79,8 +92,4 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
         }
     ]
 
-    
-
     return list(job_collection.aggregate(pipeline))
-
-
