@@ -23,7 +23,7 @@ async def parse_all_resumes():
         print("No resume files found.")
         return
 
-    await asyncio.gather(*(parse_resume(f) for f in files))
+    await asyncio.gather(*(parse_resume(f) for f in files),return_exceptions=True)
     print("All resumes parsed successfully.\n")
 
 
@@ -41,7 +41,7 @@ async def parse_all_jds():
         print("No JD files found.")
         return
 
-    await asyncio.gather(*(parse_jd(f) for f in files))
+    await asyncio.gather(*(parse_jd(f) for f in files),return_exceptions=True)
     print("All JDs parsed successfully.\n")
 
 
