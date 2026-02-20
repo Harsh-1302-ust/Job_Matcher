@@ -97,7 +97,8 @@ def main_menu():
                 print("\nTop Matching Jobs:\n")
                 for idx, job in enumerate(results, 1):
                     print(f"{idx}. Job ID: {job.get('job_id')}")
-                    print(f"   Title: {job.get('job_title', 'N/A')}")
+                    print(f"   category: {job.get('category', 'N/A')}")
+                    print(f"   Technology: {(job.get('technology'))}")
                     print(f"   Score: {job.get('total_score', 0)}")
                     print()
 

@@ -1,0 +1,508 @@
+[
+    {
+      "Technology": "Java",
+      "Categories": [
+        "Core Java",
+        "Full Stack",
+        "Microservice",
+        "Spring Boot",
+        "Hibernate",
+        "JSP/Servlets",
+        "Struts",
+        "Maven/Gradle",
+        "JUnit/TestNG",
+        "JavaFX",
+        "JPA",
+        "GraalVM"
+      ]
+    },
+    {
+      "Technology": ".Net",
+      "Categories": [
+        "ASP .Net",
+        "Backend",
+        "Core",
+        "Full Stack",
+        "Entity Framework",
+        "WPF",
+        "WinForms",
+        "Blazor",
+        "Xamarin",
+        "Web API",
+        "SignalR"
+      ]
+    },
+    {
+      "Technology": "ETL",
+      "Categories": [
+        "Azure Data Factory",
+        "DataStage",
+        "Informatica",
+        "Talend",
+        "SSIS",
+        "Pentaho",
+        "Apache Nifi",
+        "Alteryx",
+        "Matillion"
+      ]
+    },
+    {
+      "Technology": "Testing",
+      "Categories": [
+        "Cucumber",
+        "Manual Testing",
+        "Other Automation tool",
+        "Others",
+        "Penetration Testing",
+        "Security Testing",
+        "Selenium - C#",
+        "Selenium - Java",
+        "Appium",
+        "JMeter",
+        "LoadRunner",
+        "TestNG",
+        "Postman",
+        "SoapUI",
+        "Playwright",
+        "Cypress"
+      ]
+    },
+    {
+      "Technology": "DevOps",
+      "Categories": [
+        "DevOps",
+        "Others",
+        "Jenkins",
+        "GIT",
+        "GitLab CI/CD",
+        "Docker",
+        "Kubernetes",
+        "Ansible",
+        "Terraform",
+        "Puppet",
+        "Chef",
+        "ArgoCD",
+        "Helm",
+        "Prometheus",
+        "Grafana"
+      ]
+    },
+    {
+      "Technology": "UI",
+      "Categories": [
+        "Angular",
+        "HTML",
+        "JavaScript",
+        "Node JS",
+        "React",
+        "UX",
+        "Vue.js",
+        "Svelte",
+        "Bootstrap",
+        "Material UI",
+        "jQuery",
+        "TypeScript",
+        "Next.js",
+        "Nuxt.js"
+      ]
+    },
+    {
+      "Technology": "Cloud",
+      "Categories": [
+        "AWS",
+        "Azure",
+        "GCP",
+        "Serverless computing",
+        "CloudFormation",
+        "Azure DevOps",
+        "Lambda",
+        "Cloud Functions",
+        "Kubernetes Engine",
+        "Cloud Storage",
+        "Cloud Security",
+        "Cloud Monitoring"
+      ]
+    },
+    {
+      "Technology": "C",
+      "Categories": [
+        "C",
+        "C++",
+        "Others",
+        "Embedded C",
+        "C11/C17",
+        "Qt",
+        "MFC",
+        "STL"
+      ]
+    },
+    {
+      "Technology": "BI",
+      "Categories": [
+        "Congnos",
+        "Power BI",
+        "Qliksense",
+        "Spotfire",
+        "Tableau",
+        "Looker",
+        "MicroStrategy",
+        "SAP BO",
+        "Domo"
+      ]
+    },
+    {
+      "Technology": "ML/Data Science",
+      "Categories": [
+        "Python",
+        "R",
+        "TensorFlow",
+        "PyTorch",
+        "Scikit-learn",
+        "Keras",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "Jupyter",
+        "MLflow",
+        "DataRobot"
+      ]
+    },
+    {
+      "Technology": "RPA",
+      "Categories": [
+        "Automation anyware",
+        "Blueprisim",
+        "Appian",
+        "UI Path",
+        "Power Automate",
+        "Kofax",
+        "WorkFusion"
+      ]
+    },
+    {
+      "Technology": "Database",
+      "Categories": [
+        "DB2",
+        "Mongo",
+        "Oracle",
+        "Others",
+        "SQL Server",
+        "PostgreSQL",
+        "MySQL",
+        "Cassandra",
+        "Redis",
+        "Elasticsearch",
+        "MariaDB",
+        "Firebase",
+        "DynamoDB"
+      ]
+    },
+    {
+      "Technology": "Operating system",
+      "Categories": [
+        "Linux",
+        "UNIX",
+        "Windows",
+        "macOS",
+        "AIX",
+        "Solaris",
+        "Red Hat",
+        "Ubuntu",
+        "CentOS"
+      ]
+    },
+    {
+      "Technology": "Management",
+      "Categories": [
+        "Account Management",
+        "Agile Management",
+        "Delivery Management",
+        "Product Management",
+        "Project Management",
+        "Scrum Master",
+        "Service Delivery",
+        "Transition Management",
+        "Test Management",
+        "Change Management",
+        "Release Management",
+        "Incident Management"
+      ]
+    },
+    {
+      "Technology": "Perl",
+      "Categories": [
+        "Perl",
+        "Mojolicious",
+        "Catalyst",
+        "Dancer",
+        "BioPerl"
+      ]
+    },
+    {
+      "Technology": "Big Data",
+      "Categories": [
+        "Hadoop",
+        "Others",
+        "Spark",
+        "Hive",
+        "Pig",
+        "HBase",
+        "Kafka",
+        "Flink",
+        "Storm",
+        "Presto",
+        "Databricks"
+      ]
+    },
+    {
+      "Technology": "Infrastructure",
+      "Categories": [
+        "Windows Administration",
+        "Windows Server",
+        "Linux Administration",
+        "Network Administration",
+        "VMWare",
+        "Citrix",
+        "Storage Management",
+        "Backup & Recovery"
+      ]
+    },
+    {
+      "Technology": "BA",
+      "Categories": [
+        "Business Analysis",
+        "Financial Services",
+        "Healthcare",
+        "Retail",
+        "Requirements Gathering",
+        "Process Mapping",
+        "Stakeholder Management"
+      ]
+    },
+    {
+      "Technology": "SAP",
+      "Categories": [
+        "SAP",
+        "Others",
+        "SAP HANA",
+        "SAP ABAP",
+        "SAP FICO",
+        "SAP MM",
+        "SAP SD",
+        "SAP BW",
+        "SAP SuccessFactors"
+      ]
+    },
+    {
+      "Technology": "PHP",
+      "Categories": [
+        "Others",
+        "PHP",
+        "Laravel",
+        "Symfony",
+        "CodeIgniter",
+        "CakePHP",
+        "Zend",
+        "WordPress"
+      ]
+    },
+    {
+      "Technology": "Salesforce",
+      "Categories": [
+        "Others",
+        "Salesforce",
+        "Apex",
+        "Visualforce",
+        "Lightning",
+        "Sales Cloud",
+        "Service Cloud",
+        "Marketing Cloud"
+      ]
+    },
+    {
+      "Technology": "Production Support",
+      "Categories": [
+        "Others",
+        "Production Support",
+        "Incident Management",
+        "Monitoring",
+        "Root Cause Analysis",
+        "L1/L2/L3 Support"
+      ]
+    },
+    {
+      "Technology": "Pega",
+      "Categories": [
+        "Others",
+        "Pega",
+        "Pega BPM",
+        "Pega CRM"
+      ]
+    },
+    {
+      "Technology": "Python",
+      "Categories": [
+        "Python",
+        "Others",
+        "Django",
+        "Flask",
+        "FastAPI",
+        "Pyramid",
+        "Tornado",
+        "Pytest"
+      ]
+    },
+    {
+      "Technology": "R",
+      "Categories": [
+        "R",
+        "Others",
+        "Shiny",
+        "RMarkdown",
+        "Tidyverse"
+      ]
+    },
+    {
+      "Technology": "MS Dynamics",
+      "Categories": [
+        "MS Dynamics",
+        "Others",
+        "Dynamics 365",
+        "Dynamics CRM",
+        "Dynamics AX",
+        "Dynamics NAV"
+      ]
+    },
+    {
+      "Technology": "VMWare",
+      "Categories": [
+        "VMWare",
+        "Others",
+        "vSphere",
+        "vCenter",
+        "ESXi",
+        "NSX"
+      ]
+    },
+    {
+      "Technology": "Cyber Security",
+      "Categories": [
+        "Cyber Security",
+        "Others",
+        "Penetration Testing",
+        "Vulnerability Assessment",
+        "SIEM",
+        "SOC",
+        "IAM",
+        "Network Security",
+        "Application Security"
+      ]
+    },
+    {
+      "Technology": "Mainframe",
+      "Categories": [
+        "Mainframe (as400)",
+        "Others",
+        "COBOL",
+        "JCL",
+        "IMS",
+        "CICS",
+        "RACF"
+      ]
+    },
+    {
+      "Technology": "Workday",
+      "Categories": [
+        "Workday",
+        "Others",
+        "Workday HCM",
+        "Workday Financials",
+        "Workday Payroll"
+      ]
+    },
+    {
+      "Technology": "ServiceNow",
+      "Categories": [
+        "ServiceNow",
+        "Others",
+        "ITSM",
+        "ITOM",
+        "HRSD",
+        "CMDB",
+        "Service Portal"
+      ]
+    },
+    {
+      "Technology": "Go",
+      "Categories": [
+        "Go",
+        "Gin",
+        "Beego",
+        "Go Kit",
+        "Buffalo"
+      ]
+    },
+    {
+      "Technology": "Ruby",
+      "Categories": [
+        "Ruby",
+        "Ruby on Rails",
+        "Sinatra",
+        "Hanami"
+      ]
+    },
+    {
+      "Technology": "Mobile",
+      "Categories": [
+        "Android",
+        "iOS",
+        "React Native",
+        "Flutter",
+        "Swift",
+        "Kotlin",
+        "Objective-C",
+        "Xamarin"
+      ]
+    },
+    {
+      "Technology": "No-Code/Low-Code",
+      "Categories": [
+        "Mendix",
+        "OutSystems",
+        "AppSheet",
+        "Power Apps",
+        "Bubble"
+      ]
+    },
+    {
+      "Technology": "Blockchain",
+      "Categories": [
+        "Ethereum",
+        "Solidity",
+        "Hyperledger",
+        "Corda",
+        "Smart Contracts"
+      ]
+    },
+    {
+      "Technology": "AI",
+      "Categories": [
+        "Natural Language Processing",
+        "Computer Vision",
+        "Speech Recognition",
+        "Chatbots",
+        "Reinforcement Learning",
+        "AI Ethics"
+      ]
+    },
+    {
+      "Technology": "IoT",
+      "Categories": [
+        "Arduino",
+        "Raspberry Pi",
+        "MQTT",
+        "Edge Computing",
+        "IoT Security"
+      ]
+    }
+]
