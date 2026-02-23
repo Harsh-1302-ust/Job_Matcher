@@ -7,40 +7,37 @@ LOCATION_WEIGHT = 5
 EDUCATION_WEIGHT = 10
 
 
+def normalize_list(value):
+    if isinstance(value, list):
+        return [str(v).strip().lower() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        return [v.strip().lower() for v in value.split(",") if v.strip()]
+    return []
+
+
 def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
 
+    # -------------------------
     # Fetch Resume
+    # -------------------------
     resume = resume_collection.find_one({"candidate_id": candidate_id})
     if not resume:
         print("Resume not found")
         return []
 
-    # Extract resume safely
-    resume_primary = resume.get("primary_skills", [])
-    resume_secondary = resume.get("secondary_skills", [])
-    resume_experience = resume.get("experience_years", 0)
-    resume_location = (resume.get("location") or "").lower()
-    resume_education = resume.get("education", [])
+    # Normalize resume fields
+    resume_primary = normalize_list(resume.get("primary_skills"))
+    resume_secondary = normalize_list(resume.get("secondary_skills"))
+    resume_experience = resume.get("experience_years") or 0
+    resume_location = str(resume.get("location") or "").strip().lower()
+    resume_education = normalize_list(resume.get("education"))
 
-    # Normalize resume skills if stored as string
-    if isinstance(resume_primary, str):
-        resume_primary = [s.strip().lower() for s in resume_primary.split(",") if s.strip()]
-
-    if isinstance(resume_secondary, str):
-        resume_secondary = [s.strip().lower() for s in resume_secondary.split(",") if s.strip()]
-
-    if not isinstance(resume_primary, list):
-        resume_primary = []
-
-    if not isinstance(resume_secondary, list):
-        resume_secondary = []
-
-    if not isinstance(resume_education, list):
-        resume_education = []
-
+    # -------------------------
+    # Aggregation Pipeline
+    # -------------------------
     pipeline = [
 
-        # Step 1: Basic skill filtering
+        # Step 1: Basic filtering
         {
             "$match": {
                 "$or": [
@@ -50,38 +47,89 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
             }
         },
 
-        # Step 2: Safe skill intersection
+        # Step 2: Normalize job fields safely
         {
             "$addFields": {
 
                 "primary_array": {
-                    "$cond": [
-                        {"$isArray": "$primary_skills"},
-                        "$primary_skills",
-                        {
-                            "$split": [
-                                {"$ifNull": ["$primary_skills", ""]},
-                                ","
-                            ]
+                    "$cond": {
+                        "if": {"$isArray": "$primary_skills"},
+                        "then": {
+                            "$map": {
+                                "input": "$primary_skills",
+                                "as": "skill",
+                                "in": {"$toLower": "$$skill"}
+                            }
+                        },
+                        "else": {
+                            "$cond": {
+                                "if": {"$eq": [{"$type": "$primary_skills"}, "string"]},
+                                "then": {
+                                    "$map": {
+                                        "input": {"$split": ["$primary_skills", ","]},
+                                        "as": "skill",
+                                        "in": {"$toLower": {"$trim": {"input": "$$skill"}}}
+                                    }
+                                },
+                                "else": []
+                            }
                         }
-                    ]
+                    }
                 },
 
                 "secondary_array": {
-                    "$cond": [
-                        {"$isArray": "$secondary_skills"},
-                        "$secondary_skills",
-                        {
-                            "$split": [
-                                {"$ifNull": ["$secondary_skills", ""]},
-                                ","
-                            ]
+                    "$cond": {
+                        "if": {"$isArray": "$secondary_skills"},
+                        "then": {
+                            "$map": {
+                                "input": "$secondary_skills",
+                                "as": "skill",
+                                "in": {"$toLower": "$$skill"}
+                            }
+                        },
+                        "else": {
+                            "$cond": {
+                                "if": {"$eq": [{"$type": "$secondary_skills"}, "string"]},
+                                "then": {
+                                    "$map": {
+                                        "input": {"$split": ["$secondary_skills", ","]},
+                                        "as": "skill",
+                                        "in": {"$toLower": {"$trim": {"input": "$$skill"}}}
+                                    }
+                                },
+                                "else": []
+                            }
                         }
-                    ]
+                    }
+                },
+
+                "education_array": {
+                    "$cond": {
+                        "if": {"$isArray": "$education"},
+                        "then": {
+                            "$map": {
+                                "input": "$education",
+                                "as": "edu",
+                                "in": {"$toLower": "$$edu"}
+                            }
+                        },
+                        "else": []
+                    }
+                },
+
+                "job_location_lower": {
+                    "$toLower": {
+                        "$cond": {
+                            "if": {"$eq": [{"$type": "$location"}, "string"]},
+                            "then": "$location",
+                            "else": ""
+                        }
+                    }
                 }
             }
         },
 
+        # Step 3: Skill intersection
         {
             "$addFields": {
 
@@ -105,7 +153,7 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
             }
         },
 
-        # Step 3: Scoring
+        # Step 4: Weighted scoring
         {
             "$addFields": {
 
@@ -148,12 +196,7 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
 
                 "location_score": {
                     "$cond": [
-                        {
-                            "$eq": [
-                                {"$toLower": {"$ifNull": ["$location", ""]}},
-                                resume_location
-                            ]
-                        },
+                        {"$eq": ["$job_location_lower", resume_location]},
                         LOCATION_WEIGHT,
                         0
                     ]
@@ -166,7 +209,7 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
                                 {
                                     "$size": {
                                         "$setIntersection": [
-                                            {"$ifNull": ["$education", []]},
+                                            "$education_array",
                                             resume_education
                                         ]
                                     }
@@ -181,7 +224,7 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
             }
         },
 
-        # Step 4: Total Score
+        # Step 5: Total Score
         {
             "$addFields": {
                 "total_score": {
@@ -201,11 +244,11 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
             }
         },
 
-        # Step 5: Sort and limit
+        # Step 6: Sort and limit
         {"$sort": {"total_score": -1}},
         {"$limit": top_n},
 
-        # Step 6: Output
+        # Step 7: Output
         {
             "$project": {
                 "_id": 0,
@@ -223,5 +266,4 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
         }
     ]
 
-    results = list(job_collection.aggregate(pipeline))
-    return results
+    return list(job_collection.aggregate(pipeline))

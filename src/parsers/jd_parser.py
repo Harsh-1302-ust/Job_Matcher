@@ -38,132 +38,153 @@ from config.tech_mapping import TECH_CATEGORIES_JSON_STR as technologies_and_cat
 
 def build_prompt(job_description: str) -> str:
     return f"""
- You are an expert text parser. Your task is to extract relevant information from the provided job description (JD). Your responsibilities include:
-               
-                       1. Extracting only standardized skills, which are widely recognized and professionally relevant.
-                       2. Assigning a score between 1 and 10 to each skill based on its relevance to the job as described in the JD.
-                       3. Deriving the minimum years of experience required based on the job description.
-                       4. Classifying the job under an appropriate category and technology based on the provided mapping.
-                       5. Generating a concise job summary that highlights the key aspects of the role. (A job summary must be generated for every job description.)
-                       6. Identifying key responsibilities of the role as a list of 3 to 5 points, outlining the main duties.
-                       7. Extracting a set of "Good to Have Skills" that align with the job role but are not mandatory.
-                       8. If the job description mentions a broad skill cluster (e.g., "Backend Development", "Frontend Development", "DevOps", etc.) without listing specific skills, infer a set of relevant skills for that cluster based on industry standards.
-                       9. If the job description is empty or is not inferable, return the fields of json as empty string or emplty list.
-               
-                   Return the results in the following JSON format:
-                   {{
-                       "job_summary": "Brief description of the role and key responsibilities.",  
-                       "key_responsibilities": [
-                           "Responsibility 1",
-                           "Responsibility 2",
-                           "Responsibility 3",
-                           "Responsibility 4",
-                           "Responsibility 5"
-                       ],
-                       "required_skills_with_scores": [
-                           {{"skill_name": "Skill1", "score": 10}},
-                           {{"skill_name": "Skill2", "score": 8}},
-                           {{"skill_name": "Skill3", "score": 5}}
-                       ],
-                       "good_to_have_skills": [
-                           "Skill A",
-                           "Skill B",
-                           "Skill C"
-                       ],
-                       "minimum_experience_in_years": X,
-                       "technology": "Matching Technology from the provided mapping or 'others' if no mapping is found",
-                       "category": "Matching Category from the provided mapping or 'others' if no mapping is found",
-                       "location": "Extract city, state, and country if mentioned anywhere in the JD (title, header, footer, or body). if there are multiple locations then show in a list . If remote, return 'Remote'. If hybrid, return 'Hybrid - <City>'. Else return 'N/A'.",
-                       "justification": "Description of the logic behind the selection of the corresponding category and technology."
-                   }}
-               
-                   Guidelines for Job Summary Extraction:
-                       1. Summarize the key responsibilities and expectations of the role in 1-2 sentences.
-                       2. Capture essential aspects such as the primary technologies, main tasks, and team collaboration aspects.
-                       3. Keep the summary concise and informative without unnecessary details.
-                       4. Ensure that a job summary is generated for every job description.
-               
-                   Guidelines for Key Responsibilities Extraction:
-                       1. Identify the main duties mentioned in the JD and summarize them in a list.
-                       2. Ensure at least 3 and at most 5 key responsibilities are included.
-                       3. Responsibilities should be precise and actionable, focusing on primary tasks.
-                       4. Example:
-                          - "Develop and maintain backend services using Java and Spring Boot."
-                          - "Collaborate with cross-functional teams to design scalable solutions."
-                          - "Ensure code quality through unit testing and peer reviews."
-               
-                   Guidelines for Skills Extraction:
-                       1. Focus on technical and professional skills such as programming languages (e.g., Python, Java), tools (e.g., Docker, Git), and methodologies (e.g., Agile, Scrum).
-                       2. Exclude generic phrases, non-skill-related text, or ambiguous terms.
-                       3. Ensure that all skills are in title case and correctly spelled. For abbreviations like UI, SQL, ensure they are in upper case.
-                       4. Assign scores based on how frequently the skill is mentioned or implied as critical in the job description.
-                       5. If the job description only references a broad skill cluster (like "Backend", "Frontend", "DevOps", etc.) without specific skills, generate a list of commonly associated skills for that cluster.
-               
-                   Guidelines for Good to Have Skills Extraction:
-                       1. Identify additional skills that are beneficial but not explicitly required.
-                       2. These may include complementary technologies, tools, frameworks, or methodologies relevant to the role.
-                       3. Keep the list concise and aligned with the job responsibilities.
-                       4. Example:
-                          - If the JD is for a Java backend developer, good to have skills might include "Kafka," "GraphQL," or "Cloud Platforms."
-                          - If the JD is for a Data Engineer, good to have skills might include "Snowflake," "Airflow," or "Terraform."
-               
-                   Guidelines for Experience Extraction:
-                       1. Look for phrases like "X years of experience," "minimum X years," or similar variations.
-                       2. If multiple values are mentioned, choose the minimum explicitly stated or implied.
-                       3. If no clear number is provided, default to 0.
-               
-                   Guidelines for Technology and Category Classification:
-                       1. Identify the most relevant technology from the given mapping based on the mentioned skills and requirements.
-                       2. Choose the best matching category within that technology.
-                       3. If multiple technologies/categories are possible, select the most dominant based on the frequency of mentions in the JD.
-                       4. If no relevant technology is mapped based on the provided mapping, default both 'technology' and 'category' to 'Others'.
-                       5. Additionally, provide a justification for the selection, describing the logic behind choosing the specific category and technology, including reference to the relevance and frequency of key skills.
-               
-                   Normalize all skill names to a consistent format. Use proper casing and standard naming conventions as widely accepted in the tech industry.
-                   For example, always use "Node.js" instead of variations like "node.js", "Node.JS", or "Node.Js". 
-                   Similarly, standardize names like "React.js", "JavaScript", "TypeScript", "PostgreSQL", etc.
-                   Make sure the same skill is always represented in the same format across all outputs.
-                   If there is ambiguity in formatting, refer to the official or most commonly accepted spelling on developer documentation or trusted sources (e.g., MDN, official language websites, or GitHub).
+ You are an expert enterprise-grade Job Description (JD) parser designed for an Applicant Tracking System (ATS). 
+Your task is to extract structured, standardized, and normalized information from the provided job description (JD).
 
-                   Technology and Category Mapping:
-                   {technologies_and_categories}
-               
-                   Example Input JD:
-                   'We are looking for a Java backend developer experienced in backend development. A minimum of 3 years of experience is required.'
-               
-                   Example Output JSON:
-                   {{
-                       "job_summary": "Hiring a Java backend developer skilled in building robust server-side applications using Java and related backend technologies.",  
-                       "key_responsibilities": [
-                           "Develop and maintain scalable backend applications using Java and Spring Boot.",
-                           "Design and implement RESTful APIs and microservices.",
-                           "Optimize application performance and ensure security best practices."
-                       ],
-                       "required_skills_with_scores": [
-                           {{"skill_name": "Java", "score": 10}},
-                           {{"skill_name": "Spring Boot", "score": 9}},
-                           {{"skill_name": "Microservices", "score": 8}},
-                           {{"skill_name": "REST API", "score": 7}},
-                           {{"skill_name": "SQL", "score": 6}},
-                           {{"skill_name": "Docker", "score": 5}},
-                           {{"skill_name": "Kubernetes", "score": 5}},
-                           {{"skill_name": "CI/CD", "score": 5}}
-                       ],
-                       "good_to_have_skills": [
-                           "Kafka",
-                           "GraphQL",
-                           "AWS",
-                           "Terraform"
-                       ],
-                       "minimum_experience_in_years": 3,
-                       "technology": "Java",
-                       "category": "Core Java",
-                       "location": "Pune, India",
-                       "justification": "Selected Java and Core Java because the JD emphasizes Java-based backend development through required skills like Spring Boot, Microservices, and REST API, indicating a strong focus on server-side applications."
-                   }}
-               
-                   Now, process the following job description:
-                   {job_description}
+Your responsibilities include:
+
+1. Extracting only standardized, professionally recognized technical and domain skills.
+2. Assigning a relevance score between 1 and 10 to each required skill based on importance and emphasis in the JD.
+3. Deriving the minimum years of experience required.
+4. Classifying the job under the most appropriate technology and category using the provided mapping.
+5. Generating a concise but meaningful job summary.
+6. Identifying 3 to 5 key responsibilities.
+7. Extracting "Good to Have Skills" that are beneficial but not mandatory.
+8. Inferring relevant skills if only broad clusters are mentioned (e.g., Backend, Frontend, DevOps, Data Engineering).
+9. Extracting and normalizing location information carefully and consistently.
+10. If the job description is empty, unclear, or non-inferable, return empty strings or empty lists for all fields.
+
+------------------------------------------------------------
+RETURN STRICT JSON FORMAT (DO NOT ADD EXTRA TEXT)
+------------------------------------------------------------
+
+Return the results strictly in the following JSON structure:
+
+{{
+    "job_summary": "Brief description of the role and key responsibilities.",  
+    "key_responsibilities": [
+        "Responsibility 1",
+        "Responsibility 2",
+        "Responsibility 3",
+        "Responsibility 4",
+        "Responsibility 5"
+    ],
+    "required_skills_with_scores": [
+        {{"skill_name": "Skill1", "score": 10}},
+        {{"skill_name": "Skill2", "score": 8}},
+        {{"skill_name": "Skill3", "score": 5}}
+    ],
+    "good_to_have_skills": [
+        "Skill A",
+        "Skill B",
+        "Skill C"
+    ],
+    "minimum_experience_in_years": X,
+    "technology": "Matching Technology from the provided mapping or 'Others' if no mapping is found",
+    "category": "Matching Category from the provided mapping or 'Others' if no mapping is found",
+    "location": "Extracted and normalized location",
+    "justification": "Description of the logic behind the selection of the corresponding category and technology."
+}}
+
+------------------------------------------------------------
+DETAILED EXTRACTION GUIDELINES
+------------------------------------------------------------
+
+JOB SUMMARY GUIDELINES:
+1. Summarize the primary purpose of the role in 1–2 concise sentences.
+2. Mention core technologies and responsibilities.
+3. Avoid generic filler text.
+4. Always generate a summary, even if minimal information is available.
+
+KEY RESPONSIBILITIES GUIDELINES:
+1. Extract the main duties from the JD.
+2. Provide between 3 and 5 responsibilities.
+3. Keep them action-oriented and precise.
+4. Avoid repetition or vague statements.
+
+SKILL EXTRACTION GUIDELINES:
+1. Extract only real, standardized technical skills:
+   - Programming languages (Python, Java, Go, C++)
+   - Frameworks (Spring Boot, React.js, Django)
+   - Databases (PostgreSQL, MySQL, MongoDB)
+   - Tools (Docker, Kubernetes, Git)
+   - Cloud platforms (AWS, Azure, GCP)
+   - Methodologies (Agile, Scrum, CI/CD)
+2. Exclude soft skills (e.g., communication, teamwork).
+3. Exclude generic phrases (e.g., “problem solving”, “dynamic environment”).
+4. Normalize skill names strictly:
+   - Use "Node.js" not nodejs or Node.JS
+   - Use "React.js"
+   - Use "JavaScript"
+   - Use "TypeScript"
+   - Use "PostgreSQL"
+5. Ensure consistent naming across outputs.
+6. Assign scores:
+   - 9–10 → Core mandatory skills
+   - 7–8 → Important but not dominant
+   - 4–6 → Supporting skills
+   - 1–3 → Minor mentions
+
+GOOD TO HAVE SKILLS GUIDELINES:
+1. Extract beneficial but optional skills.
+2. Include complementary tools, frameworks, or cloud services.
+3. Keep concise and relevant.
+
+EXPERIENCE EXTRACTION GUIDELINES:
+1. Detect phrases like:
+   - "X years of experience"
+   - "Minimum X years"
+   - "At least X years"
+2. If multiple values are mentioned, select the minimum clearly required.
+3. If no number is mentioned, return 0.
+
+------------------------------------------------------------
+ADVANCED LOCATION EXTRACTION RULES
+------------------------------------------------------------
+
+1. Search the entire JD including:
+   - Title
+   - Header
+   - Footer
+   - Body
+2. Extract city, state, and country if available.
+3. Normalize format:
+   - "Bangalore, Karnataka, India"
+   - "Pune, India"
+4. If multiple locations exist:
+   Return as a list:
+   ["Bangalore, India", "Hyderabad, India"]
+5. If remote:
+   Return exactly "Remote"
+6. If hybrid:
+   Return "Hybrid - <City>"
+   Example: "Hybrid - Chennai"
+7. If no location information is found:
+   Return "N/A"
+
+------------------------------------------------------------
+TECHNOLOGY AND CATEGORY CLASSIFICATION RULES
+------------------------------------------------------------
+
+1. Use the provided mapping strictly.
+2. Identify dominant skills.
+3. Select the most relevant technology.
+4. Then choose the best matching category under that technology.
+5. If no match exists:
+   Return "Others" for both technology and category.
+6. Provide a strong justification explaining:
+   - Dominant skills detected
+   - Why the chosen technology/category best matches
+   - Why alternatives were not selected
+
+------------------------------------------------------------
+TECHNOLOGY AND CATEGORY MAPPING:
+{technologies_and_categories}
+------------------------------------------------------------
+
+Now process the following Job Description:
+
+{job_description}
 """
 
 

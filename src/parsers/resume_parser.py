@@ -47,120 +47,238 @@ current_date = datetime.utcnow().strftime("%d/%m/%Y")
 # -----------------------------
 def build_prompt(text: str) -> str:
     return f"""
-            Below is the data about an employee in a firm. The employee details are as follows:
- 
-                Resume Content: {text}
-                Based on the resume content, generate a JSON containing the following information:
- 
-                Employee Name:
-                    The full name of the employee.
-                Email:
-                    The email address of the employee. If the email is not mentioned, write "Not Specified".
-                Education:
-                    The educational background of the employee, including their degree and major.
-                    This field should be a list of dictionaries where each dictionary contains:
-                        - Period: The start and end years of the education.
-                        - Degree: The degree obtained.
-                        - University: The name of the university or institution.
-                        - If any of these fields are not specified, write "Not Specified".
-                    If education is not mentioned, return an empty list [].
-                Experience:
-                    The work experience of the employee, including roles and responsibilities. From the most recent one to the least recent one. This field should contain these fields inside it:
-                        Period: start and end dates of the current experience. Both start and end dates should be in the format dd/mm/yyyy. If the dates are not specified, write "Not Specified". If the end date is specified as "Present" change it to current date which is {current_date}. If the day is not specified, use "XX" in place of the day, e.g., "XX/03/2022". If month is not specified, use "XX/XX/yyyy" format.
-                        Experience_In_Months: Total months of experience in this given role returned as a integer. If the period of experience is not specified, return 0.
-                        Company: the name of the company. If the company is not specified, write "Not Specified".
-                        Job_Role: the role of the employee in the company. If the role is not specified, write "Not Specified".
-                        Summary:  A brief summary of the responsibilities and achievements in the role, written using gender-neutral language without assuming any pronouns. If a summary is not available, write "Not Available".
-                        Skills: the skills used in the role. For abbreviations like UI, SQL, ensure they are in upper case. If skills are not mentioned, return an empty list [].
-                    If experience is not mentioned, return an empty list [].
-                Experience_Mentioned_In_Resume:
-                    Explicitly metioned years of experience in the resume. This should be a number representing the total years of experience mentioned in the resume. If no experience is mentioned, return 0.
-                    This should be a float value with one decimal place. For example, if the employee has 9 years and 6 months of experience, return 9.5.
-                    Usually employee may say in their resume that they have 9.5+ year of experience then return 9.5
-                Primary Skills:
-                    The skills in which the employee excels the most.
-                    These skills should align with their most recent job experience and areas where they are most experienced.
-                    Extracting only standardized skills, which are widely recognized and professionally relevant.
-                    Focus on technical and professional skills such as programming languages (e.g., Python, Java), tools (e.g., Docker, Git), and methodologies (e.g., Agile, Scrum).
-                    Exclude generic phrases, non-skill-related text, or ambiguous terms.
-                    Ensure that all skills are in title case and correctly spelled.
-                    For abbreviations like UI, SQL, ensure they are in upper case.
-                    If primary skills are not available return an empty list [].
-                Secondary Skills:
-                    The remaining skills that are not considered primary but are still part of the employee's skill set.
-                    Extracting only standardized skills, which are widely recognized and professionally relevant.
-                    Focus on technical and professional skills such as programming languages (e.g., Python, Java), tools (e.g., Docker, Git), and methodologies (e.g., Agile, Scrum).
-                    Exclude generic phrases, non-skill-related text, or ambiguous terms.
-                    Ensure that all skills are in title case and correctly spelled.
-                    For abbreviations like UI, SQL, ensure they are in upper case.
-                    If secondary skills are not avavilable return an empty list [].
-                Technology:
-                    The main technology the employee specializes in, based on their experience and recent job role.
-                    This should be determined using the mapping provided: {technologies_and_categories}.
-                    If their most recent role is as a manager or business analyst, the technology should reflect that, even if they previously worked in software development roles.
-                Category:
-                    The specific category of expertise the employee falls under.
-                    This should be determined using the mapping provided: {technologies_and_categories}.
-                    The category should reflect their most recent experience and role. For example:
-                    If their most recent role is as a manager or business analyst, the category should reflect that, even if they previously worked in software development roles.
-                If the employees most recent experience and skills dont align with any of the given technology and category, set both the value as Others.
-                Justification:
-                    A brief explanation supporting the categorization.
-                    The justification should consider the recent job roles, skills, main technology, and the selected category.
-                Profile Summary:
-                    Write a concise profile summary of the employee based on the information provided in their resume. This summary should include details about the employee's skills, overall experience, years of experience, and expertise in their field. Ensure that the language is completely gender neutral and avoids any pronouns that assume gender identity. Try to make it in less than 55 words.
-                Certifications:
-                    A list of professional certifications obtained by the employee.
-                    If no certifications are mentioned, return an empty list [].
+            You are an enterprise-grade Resume Parser designed for an Applicant Tracking System (ATS).
+Your task is to extract accurate, structured, and normalized information from the provided resume content.
 
-                Important:
-                    - If the resume content is in Spanish, return the **values** in Spanish but keep the JSON **keys** in English.
-                    - If the resume content is in English, return everything in English as usual.
-               
-                Example of the JSON structure:
-                    "Employee_Name": "John Doe",
-                    "Email": "john.doe@example.com",
-                    "Education": [
-                        {{
-                            Period: "2010 - 2013",
-                            Degree: "Master of Computer Applications (MCA)",
-                            University: "A P J Abdul Kalam Technological University"
-                        }}
-                    ]
-                    "Experience": [
-                        {{
-                            "Period": "01/01/2025 - {current_date}",
-                            "Experience_In_Months": 5,
-                            "Company": "UST",
-                            "Job_Role": "Senior Software Engineer",
-                            "Summary": "Developed and enhanced Dell's commerce platform by designing and coding .Net Core web APIs using C#. Collaborated with product owners and stakeholders, managed requirements via JIRA and Confluence, resolved application bugs, and implemented unit tests and BDDs within an agile framework.",
-                            "Skills": ["C#", ".Net Core Web API", "Microservices", "Git", "BDD", "Unit Testing", "Dynatrace", "CICD Pipeline"]
-                        }},
-                        {{
-                            "Period": "21/08/2021 - 21/12/2024",
-                            "Experience_In_Months": 40,
-                            "Company": "UST-Experience Incubator",
-                            "Job_Role": "Developer",
-                            "Summary": "Development REST API using .NET Core, dependency injection, repository pattern, dapper and database connection in MySQL. Developing a MVC web application, using .NET Core, consuming a REST API, dependency injection, merge of modules, design of modules with HTML and CSS. Saving and updating changes in a git repository, working on branches. Scrum agile participates in daily standup meetings, planning meetings, grooming, demo, closure and three sprints.",
-                            "Skills": ["Visual Studio Code", "MySQL Workbench", "GitLab", "Ubuntu server"]
-                        }},
-                        {{
-                            "Period": "Not Specified",
-                            "Experience_In_Months": 0,
-                            "Company": "UST",
-                            "Job_Role": "QA Engineer - Integration Testing",
-                            "Summary": "Executed custom SQL queries to ensure data accuracy and integrity while performing regression, functionality, and integration testing on healthcare insurance processes. Collaborated in agile sprints, managed defect reporting using JIRA, and maintained test cases in TestRail.",
-                            "Skills": "Skills": ["SQL", "Jira", "TestRail", "Comparator Tool"]
-                        }}
-                    ],
-                    "Experience_Mentioned_In_Resume": 4.0,
-                    "Primary_Skills": ["Python", "SQL"],
-                    "Secondary_Skills": ["Java", "C++"],
-                    "Technology": "CyberSecurity",
-                    "Category": "CyberSecurity",
-                    "Justification": "The employee has extensive experience in Python and SQL, which are the primary skills. The secondary skills include Java and C++. The employee's main technology is CyberSecurity, and the category of expertise is CyberSecurity.",
-                    "Profile_Summary": "A highly skilled developer with a strong foundation in Python and SQL, with experience in backend development, API integration, and agile methodologies. Known for delivering high-quality work and actively contributing to team success." ,
-                    "Certifications": ["Scrum Master Certified (SCM)", "AWS Certified Solutions Architect - Associate"]  
+------------------------------------------------------------
+RESUME CONTENT:
+{text}
+------------------------------------------------------------
+
+Generate a STRICT JSON response with the exact structure described below.
+Do NOT add explanations or extra text outside JSON.
+
+------------------------------------------------------------
+RETURN JSON STRUCTURE
+------------------------------------------------------------
+
+{{
+    "Employee_Name": "",
+    "Email": "",
+    "Education": [],
+    "Experience": [],
+    "Experience_Mentioned_In_Resume": 0.0,
+    "Primary_Skills": [],
+    "Secondary_Skills": [],
+    "Technology": "",
+    "Category": "",
+    "Justification": "",
+    "Profile_Summary": "",
+    "Certifications": []
+}}
+
+------------------------------------------------------------
+FIELD EXTRACTION RULES
+------------------------------------------------------------
+
+EMPLOYEE NAME:
+- Extract full name.
+- If unclear, return "Not Specified".
+
+EMAIL:
+- Extract professional email.
+- If not present, return "Not Specified".
+
+------------------------------------------------------------
+EDUCATION:
+------------------------------------------------------------
+
+Return a list of dictionaries:
+Each dictionary must contain:
+- Period
+- Degree
+- University
+
+Rules:
+1. Period must contain start and end years (e.g., "2018 - 2022").
+2. If any field is missing, return "Not Specified".
+3. If education section is missing entirely, return [].
+
+------------------------------------------------------------
+EXPERIENCE:
+------------------------------------------------------------
+
+Return experience entries ordered:
+Most recent → Oldest
+
+Each entry must contain:
+
+- "Period":
+    Format strictly as:
+    dd/mm/yyyy - dd/mm/yyyy
+
+    Rules:
+    • If end date is "Present", replace it with {current_date}
+    • If day is missing → use "XX"
+    • If month is missing → use "XX/XX/yyyy"
+    • If completely missing → "Not Specified"
+
+- "Experience_In_Months":
+    Calculate total months for that role.
+    If period missing → return 0.
+
+- "Company":
+    Extract official company name.
+    If missing → "Not Specified"
+
+- "Job_Role":
+    Extract official role/title.
+    If missing → "Not Specified"
+
+- "Summary":
+    Write concise summary of responsibilities.
+    Must be gender-neutral.
+    Do NOT assume pronouns.
+    If unavailable → "Not Available"
+
+- "Skills":
+    Extract only standardized technical skills used in that role.
+    Examples:
+    Python, Java, SQL, Docker, Kubernetes, Git, Agile, Scrum
+    For abbreviations like UI, SQL → uppercase.
+    If no skills → return []
+
+If no experience section exists → return [].
+
+------------------------------------------------------------
+EXPERIENCE_MENTIONED_IN_RESUME:
+------------------------------------------------------------
+
+Extract explicitly stated years of experience.
+Examples:
+- "9.5+ years experience" → 9.5
+- "4 years of experience" → 4.0
+
+Rules:
+- Return float with one decimal place.
+- If nothing mentioned → return 0.0.
+
+------------------------------------------------------------
+PRIMARY SKILLS:
+------------------------------------------------------------
+
+Extract top skills based on:
+- Most recent role
+- Depth of experience
+- Frequency of mention
+
+Rules:
+1. Only standardized professional skills.
+2. No soft skills.
+3. Proper casing:
+   - Node.js
+   - React.js
+   - JavaScript
+   - TypeScript
+   - PostgreSQL
+4. Abbreviations like SQL, UI → uppercase.
+5. If none → [].
+
+------------------------------------------------------------
+SECONDARY SKILLS:
+------------------------------------------------------------
+
+All remaining valid technical skills not in Primary_Skills.
+
+Rules:
+- Same normalization rules as primary skills.
+- No duplicates.
+- If none → [].
+
+------------------------------------------------------------
+TECHNOLOGY:
+------------------------------------------------------------
+
+Determine dominant technology using mapping:
+{technologies_and_categories}
+
+Rules:
+1. Most recent role takes priority.
+2. If recent role is Manager or Business Analyst,
+   classify accordingly even if earlier developer experience exists.
+3. If no alignment → "Others".
+
+------------------------------------------------------------
+CATEGORY:
+------------------------------------------------------------
+
+Determine specific category within selected Technology.
+
+Rules:
+1. Reflect most recent role.
+2. Must align with mapping.
+3. If no alignment → "Others".
+
+------------------------------------------------------------
+JUSTIFICATION:
+------------------------------------------------------------
+
+Provide brief reasoning explaining:
+- Why selected technology
+- Why selected category
+- How recent role influenced classification
+
+Keep concise and logical.
+
+------------------------------------------------------------
+PROFILE SUMMARY:
+------------------------------------------------------------
+
+Write a concise profile summary under 55 words.
+Must:
+- Be gender-neutral.
+- Mention years of experience.
+- Mention specialization.
+- Mention key technologies.
+- Avoid pronouns.
+- Be professional and compact.
+
+------------------------------------------------------------
+CERTIFICATIONS:
+------------------------------------------------------------
+
+Extract professional certifications only.
+Examples:
+- AWS Certified Solutions Architect
+- Scrum Master Certified
+- PMP
+- Azure Fundamentals
+
+If none mentioned → [].
+
+------------------------------------------------------------
+LANGUAGE RULE:
+------------------------------------------------------------
+
+If resume is in Spanish:
+- Keep JSON keys in English.
+- Return values in Spanish.
+
+If resume is in English:
+- Return everything in English.
+
+------------------------------------------------------------
+STRICT RULES:
+------------------------------------------------------------
+
+1. Return ONLY valid JSON.
+2. No trailing commas.
+3. No extra explanations.
+4. No hallucinated data.
+5. If data unavailable, follow fallback rules strictly.
+
+------------------------------------------------------------
+NOW PROCESS THE RESUME ABOVE. 
                 """
 
 
@@ -225,19 +343,40 @@ async def parse_resume(pdf_path: str):
             print(f"❌ Parsing failed for {pdf_path}: {e}")
             return
 
+
         resume_data = {
             "candidate_id": str(uuid.uuid4()),
+
             "name": (parsed.get("Employee_Name") or "").strip(),
             "email": extracted_email,
+
             "primary_skills": [
-                normalize_skill(s) for s in parsed.get("Primary_Skills", [])
+                normalize_skill(s)
+                for s in parsed.get("Primary_Skills", [])
+                if isinstance(s, str)
             ],
+
             "secondary_skills": [
-                normalize_skill(s) for s in parsed.get("Secondary_Skills", [])
+                normalize_skill(s)
+                for s in parsed.get("Secondary_Skills", [])
+                if isinstance(s, str)
             ],
-            "experience_years": float(parsed.get("Experience_Mentioned_In_Resume", 0) or 0),
-            "location": "",
-            "education": ""
+
+            "experience_years": float(
+                parsed.get("Experience_Mentioned_In_Resume", 0) or 0
+            ),
+
+            "education": parsed.get("Education", []),
+            "experience_details": parsed.get("Experience", []),
+
+            "technology": parsed.get("Technology", "Others"),
+            "category": parsed.get("Category", "Others"),
+            "justification": parsed.get("Justification", ""),
+
+            "profile_summary": parsed.get("Profile_Summary", ""),
+            "certifications": parsed.get("Certifications", []),
+
+            "created_at": datetime.utcnow()
         }
 
         if not resume_data["email"]:
@@ -249,4 +388,5 @@ async def parse_resume(pdf_path: str):
             return
 
         resume_collection.insert_one(resume_data)
+
         print(f"✅ Stored: {resume_data['email']}")
