@@ -32,9 +32,13 @@ semaphore = asyncio.Semaphore(AZURE_CONCURRENCY)
 from config.tech_mapping import TECH_CATEGORIES_JSON_STR as technologies_and_categories
 
 
+
+
 # -----------------------------------
 # 🔥 YOUR EXACT PROMPT
 # -----------------------------------
+
+
 
 def build_prompt(job_description: str) -> str:
     return f"""
@@ -210,7 +214,7 @@ async def parse_jd(pdf_path: str):
 
     async with semaphore:
 
-        print(f"📄 Processing: {pdf_path}")
+        print(f" Processing: {pdf_path}")
 
         text = extract_text_from_pdf(pdf_path)
 

@@ -7,6 +7,10 @@ LOCATION_WEIGHT = 5
 EDUCATION_WEIGHT = 10
 
 
+# ---------------------------------------
+# 🔹 Python Normalizer
+# ---------------------------------------
+
 def normalize_list(value):
     if isinstance(value, list):
         return [str(v).strip().lower() for v in value if str(v).strip()]
@@ -15,205 +19,133 @@ def normalize_list(value):
     return []
 
 
+# ---------------------------------------
+# 🔹 Safe Mongo Array Normalizer
+# ---------------------------------------
+
+def safe_array(field_name):
+    return {
+        "$cond": {
+            "if": {"$isArray": f"${field_name}"},
+            "then": {
+                "$map": {
+                    "input": f"${field_name}",
+                    "as": "item",
+                    "in": {
+                        "$cond": [
+                            {"$eq": [{"$type": "$$item"}, "string"]},
+                            {"$toLower": "$$item"},
+                            ""
+                        ]
+                    }
+                }
+            },
+            "else": {
+                "$cond": {
+                    "if": {"$eq": [{"$type": f"${field_name}"}, "string"]},
+                    "then": [{"$toLower": f"${field_name}"}],
+                    "else": []
+                }
+            }
+        }
+    }
+
+
+# ===============================================
+# 🔥 RESUME → JOB MATCHING
+# ===============================================
+
 def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
 
-    # -------------------------
-    # Fetch Resume
-    # -------------------------
     resume = resume_collection.find_one({"candidate_id": candidate_id})
     if not resume:
-        print("Resume not found")
         return []
 
-    # Normalize resume fields
     resume_primary = normalize_list(resume.get("primary_skills"))
     resume_secondary = normalize_list(resume.get("secondary_skills"))
-    resume_experience = resume.get("experience_years") or 0
-    resume_location = str(resume.get("location") or "").strip().lower()
+    resume_location = normalize_list(resume.get("location"))
     resume_education = normalize_list(resume.get("education"))
+    resume_experience = resume.get("experience_years", 0)
 
-    # -------------------------
-    # Aggregation Pipeline
-    # -------------------------
     pipeline = [
 
-        # Step 1: Basic filtering
+        # 🔥 Pre-filter jobs using $match
         {
             "$match": {
                 "$or": [
-                    {"primary_skills": {"$exists": True}},
-                    {"secondary_skills": {"$exists": True}}
+                    {"primary_skills": {"$in": resume_primary}},
+                    {"secondary_skills": {"$in": resume_secondary}}
                 ]
             }
         },
 
-        # Step 2: Normalize job fields safely
+        # Normalize safely
         {
             "$addFields": {
-
-                "primary_array": {
-                    "$cond": {
-                        "if": {"$isArray": "$primary_skills"},
-                        "then": {
-                            "$map": {
-                                "input": "$primary_skills",
-                                "as": "skill",
-                                "in": {"$toLower": "$$skill"}
-                            }
-                        },
-                        "else": {
-                            "$cond": {
-                                "if": {"$eq": [{"$type": "$primary_skills"}, "string"]},
-                                "then": {
-                                    "$map": {
-                                        "input": {"$split": ["$primary_skills", ","]},
-                                        "as": "skill",
-                                        "in": {"$toLower": {"$trim": {"input": "$$skill"}}}
-                                    }
-                                },
-                                "else": []
-                            }
-                        }
-                    }
-                },
-
-                "secondary_array": {
-                    "$cond": {
-                        "if": {"$isArray": "$secondary_skills"},
-                        "then": {
-                            "$map": {
-                                "input": "$secondary_skills",
-                                "as": "skill",
-                                "in": {"$toLower": "$$skill"}
-                            }
-                        },
-                        "else": {
-                            "$cond": {
-                                "if": {"$eq": [{"$type": "$secondary_skills"}, "string"]},
-                                "then": {
-                                    "$map": {
-                                        "input": {"$split": ["$secondary_skills", ","]},
-                                        "as": "skill",
-                                        "in": {"$toLower": {"$trim": {"input": "$$skill"}}}
-                                    }
-                                },
-                                "else": []
-                            }
-                        }
-                    }
-                },
-
-                "education_array": {
-                    "$cond": {
-                        "if": {"$isArray": "$education"},
-                        "then": {
-                            "$map": {
-                                "input": "$education",
-                                "as": "edu",
-                                "in": {"$toLower": "$$edu"}
-                            }
-                        },
-                        "else": []
-                    }
-                },
-
-                "job_location_lower": {
-                    "$toLower": {
-                        "$cond": {
-                            "if": {"$eq": [{"$type": "$location"}, "string"]},
-                            "then": "$location",
-                            "else": ""
-                        }
-                    }
-                }
+                "primary_array": safe_array("primary_skills"),
+                "secondary_array": safe_array("secondary_skills"),
+                "education_array": safe_array("education"),
+                "location_array": safe_array("location"),
             }
         },
 
-        # Step 3: Skill intersection
+        # Compute intersections
         {
             "$addFields": {
-
                 "primary_match": {
                     "$size": {
-                        "$setIntersection": [
-                            "$primary_array",
-                            resume_primary
-                        ]
+                        "$setIntersection": ["$primary_array", resume_primary]
                     }
                 },
-
                 "secondary_match": {
                     "$size": {
-                        "$setIntersection": [
-                            "$secondary_array",
-                            resume_secondary
-                        ]
+                        "$setIntersection": ["$secondary_array", resume_secondary]
                     }
                 }
             }
         },
 
-        # Step 4: Weighted scoring
+        # Compute scores
         {
             "$addFields": {
-
                 "primary_score": {
                     "$multiply": [
-                        {
-                            "$divide": [
-                                "$primary_match",
-                                {"$max": [{"$size": "$primary_array"}, 1]}
-                            ]
-                        },
+                        {"$divide": ["$primary_match", {"$max": [{"$size": "$primary_array"}, 1]}]},
                         PRIMARY_WEIGHT
                     ]
                 },
-
                 "secondary_score": {
                     "$multiply": [
-                        {
-                            "$divide": [
-                                "$secondary_match",
-                                {"$max": [{"$size": "$secondary_array"}, 1]}
-                            ]
-                        },
+                        {"$divide": ["$secondary_match", {"$max": [{"$size": "$secondary_array"}, 1]}]},
                         SECONDARY_WEIGHT
                     ]
                 },
-
                 "experience_score": {
                     "$cond": [
                         {
-                            "$gte": [
-                                resume_experience,
-                                {"$ifNull": ["$minimum_experience_in_years", 0]}
-                            ]
+                            "$gte": ["$experience_years", resume_experience]
                         },
                         EXPERIENCE_WEIGHT,
                         0
                     ]
                 },
-
                 "location_score": {
                     "$cond": [
-                        {"$eq": ["$job_location_lower", resume_location]},
+                        {
+                            "$gt": [
+                                {"$size": {"$setIntersection": ["$location_array", resume_location]}},
+                                0
+                            ]
+                        },
                         LOCATION_WEIGHT,
                         0
                     ]
                 },
-
                 "education_score": {
                     "$cond": [
                         {
                             "$gt": [
-                                {
-                                    "$size": {
-                                        "$setIntersection": [
-                                            "$education_array",
-                                            resume_education
-                                        ]
-                                    }
-                                },
+                                {"$size": {"$setIntersection": ["$education_array", resume_education]}},
                                 0
                             ]
                         },
@@ -224,7 +156,6 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
             }
         },
 
-        # Step 5: Total Score
         {
             "$addFields": {
                 "total_score": {
@@ -244,11 +175,9 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
             }
         },
 
-        # Step 6: Sort and limit
         {"$sort": {"total_score": -1}},
         {"$limit": top_n},
 
-        # Step 7: Output
         {
             "$project": {
                 "_id": 0,
@@ -256,14 +185,145 @@ def match_resume_to_jobs(candidate_id: str, top_n: int = 5):
                 "job_summary": 1,
                 "technology": 1,
                 "category": 1,
-                "total_score": 1,
-                "primary_score": 1,
-                "secondary_score": 1,
-                "experience_score": 1,
-                "location_score": 1,
-                "education_score": 1
+                "total_score": 1
             }
         }
     ]
 
     return list(job_collection.aggregate(pipeline))
+
+
+# ===============================================
+# 🔥 JOB → RESUME MATCHING
+# ===============================================
+
+def match_job_to_resumes(job_id: str, top_n: int = 5):
+
+    job = job_collection.find_one({"job_id": job_id})
+    if not job:
+        return []
+
+    job_primary = normalize_list(job.get("primary_skills"))
+    job_secondary = normalize_list(job.get("secondary_skills"))
+    job_location = normalize_list(job.get("location"))
+    job_education = normalize_list(job.get("education"))
+    job_experience = job.get("minimum_experience_in_years", 0)
+
+    pipeline = [
+
+        # 🔥 Pre-filter resumes
+        {
+            "$match": {
+                "$or": [
+                    {"primary_skills": {"$in": job_primary}},
+                    {"secondary_skills": {"$in": job_secondary}}
+                ]
+            }
+        },
+
+        {
+            "$addFields": {
+                "primary_array": safe_array("primary_skills"),
+                "secondary_array": safe_array("secondary_skills"),
+                "education_array": safe_array("education"),
+                "location_array": safe_array("location"),
+            }
+        },
+
+        {
+            "$addFields": {
+                "primary_match": {
+                    "$size": {
+                        "$setIntersection": ["$primary_array", job_primary]
+                    }
+                },
+                "secondary_match": {
+                    "$size": {
+                        "$setIntersection": ["$secondary_array", job_secondary]
+                    }
+                }
+            }
+        },
+
+        {
+            "$addFields": {
+                "primary_score": {
+                    "$multiply": [
+                        {"$divide": ["$primary_match", {"$max": [{"$size": "$primary_array"}, 1]}]},
+                        PRIMARY_WEIGHT
+                    ]
+                },
+                "secondary_score": {
+                    "$multiply": [
+                        {"$divide": ["$secondary_match", {"$max": [{"$size": "$secondary_array"}, 1]}]},
+                        SECONDARY_WEIGHT
+                    ]
+                },
+                "experience_score":{
+                    "$cond": [
+                        {"$gte": ["$experience_years", job_experience]},
+                        EXPERIENCE_WEIGHT,
+                        0
+                    ]
+                },
+                "location_score": {
+                    "$cond": [
+                        {
+                            "$gt": [
+                                {"$size": {"$setIntersection": ["$location_array", job_location]}},
+                                0
+                            ]
+                        },
+                        LOCATION_WEIGHT,
+                        0
+                    ]
+                },
+                "education_score": {
+                    "$cond": [
+                        {
+                            "$gt": [
+                                {"$size": {"$setIntersection": ["$education_array", job_education]}},
+                                0
+                            ]
+                        },
+                        EDUCATION_WEIGHT,
+                        0
+                    ]
+                }
+            }
+        },
+
+        {
+            "$addFields": {
+                "total_score": {
+                    "$round": [
+                        {
+                            "$add": [
+                                "$primary_score",
+                                "$secondary_score",
+                                "$experience_score",
+                                "$location_score",
+                                "$education_score"
+                            ]
+                        },
+                        2
+                    ]
+                }
+            }
+        },
+
+        {"$sort": {"total_score": -1}},
+        {"$limit": top_n},
+
+        {
+            "$project": {
+                "_id": 0,
+                "candidate_id": 1,
+                "name": 1,
+                "email": 1,
+                "total_score": 1
+            }
+        }
+    ]
+
+    return list(resume_collection.aggregate(pipeline))

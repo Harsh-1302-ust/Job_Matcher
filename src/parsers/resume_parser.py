@@ -290,6 +290,13 @@ def normalize_skill(skill: str) -> str:
     skill = re.sub(r"[^a-z0-9\s]", " ", skill)
     skill = re.sub(r"\s+", " ", skill)
     return skill.strip()
+import re
+
+def normalize_location(location: str) -> str:
+    location = (location or "").lower()
+    location = re.sub(r"[^a-z0-9\s]", " ", location)
+    location = re.sub(r"\s+", " ", location)
+    return location.strip()
 
 def extract_email(text: str) -> str:
     # Fix common pypdf formatting issues
