@@ -60,6 +60,7 @@ RETURN JSON STRUCTURE
     "Experience_Mentioned_In_Resume": 0.0,
     "Primary_Skills": [],
     "Secondary_Skills": [],
+    "Location": [],
     "Technology": "",
     "Category": "",
     "Justification": "",
@@ -186,6 +187,25 @@ Rules:
 - If none → [].
 
 ------------------------------------------------------------
+LOCATION:
+------------------------------------------------------------
+
+Extract candidate current location.
+
+Priority Order:
+
+1. Contact/Header section location.
+2. Most recent job location (if available).
+3. If no experience AND no header location,
+   use most recent education location.
+
+Rules:
+- Return city name only.
+- Return as list.
+- Do NOT guess.
+- If absolutely not mentioned → return [].
+
+------------------------------------------------------------
 TECHNOLOGY:
 ------------------------------------------------------------
 
@@ -305,11 +325,11 @@ def extract_email(text: str) -> str:
 # Main Async Parser
 # -----------------------------
 async def parse_resume(pdf_path: str):
+
     async with semaphore:
 
         try:
             text = extract_text_from_pdf(pdf_path)
-
             extracted_email = extract_email(text)
 
             response = await client.chat.completions.create(
@@ -327,23 +347,43 @@ async def parse_resume(pdf_path: str):
 
             raw_content = response.choices[0].message.content
             cleaned = clean_json_response(raw_content)
-
-            try:
-                parsed = json.loads(cleaned)
-            except json.JSONDecodeError as err:
-                print("⚠ JSON decode error")
-                print("Raw response:\n", raw_content)
-                print("Cleaned response:\n", cleaned)
-                raise err
+            parsed = json.loads(cleaned)
 
         except Exception as e:
             print(f"❌ Parsing failed for {pdf_path}: {e}")
             return
 
+        # ---------------------------------
+        # EXPERIENCE CALCULATION (FIXED)
+        # ---------------------------------
 
+        # 1️⃣ Mentioned years → months
+        mentioned_years = float(
+            parsed.get("Experience_Mentioned_In_Resume", 0) or 0
+        )
+        mentioned_months = int(mentioned_years * 12)
+
+        # 2️⃣ Calculated months from each role
+        experience_details = parsed.get("Experience", [])
+
+        calculated_months = 0
+        for exp in experience_details:
+            if isinstance(exp, dict):
+                months = exp.get("Experience_In_Months", 0)
+                try:
+                    calculated_months += int(months)
+                except:
+                    pass
+
+        # 3️⃣ Enterprise logic → take maximum
+        total_experience_months = max(mentioned_months, calculated_months)
+        total_experience_years = round(total_experience_months / 12, 1)
+
+        # ---------------------------------
+        # Resume Document
+        # ---------------------------------
         resume_data = {
             "candidate_id": str(uuid.uuid4()),
-
             "name": (parsed.get("Employee_Name") or "").strip(),
             "email": extracted_email,
 
@@ -359,12 +399,17 @@ async def parse_resume(pdf_path: str):
                 if isinstance(s, str)
             ],
 
-            "experience_years": float(
-                parsed.get("Experience_Mentioned_In_Resume", 0) or 0
-            ),
+            "location": [
+                normalize_location(loc)
+                for loc in parsed.get("Location", [])
+                if isinstance(loc, str)
+            ],
+
+            "total_experience_months": total_experience_months,
+            "total_experience_years": total_experience_years,
 
             "education": parsed.get("Education", []),
-            "experience_details": parsed.get("Experience", []),
+            "experience_details": experience_details,
 
             "technology": parsed.get("Technology", "Others"),
             "category": parsed.get("Category", "Others"),
