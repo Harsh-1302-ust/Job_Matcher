@@ -42,7 +42,7 @@ async def parse_all_jds():
 def main_menu():
     while True:
         try:
-            print("\n========== ATS SYSTEM ==========")
+            print("\n========== JOB MATCHER SYSTEM ==========")
             print("1. Parse Resumes")
             print("2. Parse JDs")
             print("3. Match Resume → Top JDs")

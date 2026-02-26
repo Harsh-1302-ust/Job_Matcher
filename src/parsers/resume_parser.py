@@ -353,9 +353,6 @@ async def parse_resume(pdf_path: str):
             print(f"❌ Parsing failed for {pdf_path}: {e}")
             return
 
-        # ---------------------------------
-        # EXPERIENCE CALCULATION (FIXED)
-        # ---------------------------------
 
         # 1️⃣ Mentioned years → months
         mentioned_years = float(

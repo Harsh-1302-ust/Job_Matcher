@@ -81,7 +81,7 @@ DETAILED EXTRACTION GUIDELINES
 ------------------------------------------------------------
 
 JOB SUMMARY GUIDELINES:
-1. Summarize the primary purpose of the role in 1–2 concise sentences.
+1. Summarize the primary purpose of the role in 1-2 concise sentences.
 2. Mention core technologies and responsibilities.
 3. Avoid generic filler text.
 4. Always generate a summary, even if minimal information is available.
@@ -110,10 +110,10 @@ SKILL EXTRACTION GUIDELINES:
    - Use "PostgreSQL"
 5. Ensure consistent naming across outputs.
 6. Assign scores:
-   - 9–10 → Core mandatory skills
-   - 7–8 → Important but not dominant
-   - 4–6 → Supporting skills
-   - 1–3 → Minor mentions
+   - 9-10 → Core mandatory skills
+   - 7-8 → Important but not dominant
+   - 4-6 → Supporting skills
+   - 1-3 → Minor mentions
 
 GOOD TO HAVE SKILLS GUIDELINES:
 1. Extract beneficial but optional skills.
