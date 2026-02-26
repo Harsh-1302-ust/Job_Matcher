@@ -13,10 +13,6 @@ from config.settings import (
     AZURE_CONCURRENCY
 )
 
-# -----------------------------------
-# 🔹 Azure OpenAI Client
-# -----------------------------------
-
 client = AsyncAzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
@@ -25,18 +21,8 @@ client = AsyncAzureOpenAI(
 
 semaphore = asyncio.Semaphore(AZURE_CONCURRENCY)
 
-
-# -----------------------------------
-# 🔹 Technology Mapping
-# -----------------------------------
 from config.tech_mapping import TECH_CATEGORIES_JSON_STR as technologies_and_categories
 
-
-
-
-# -----------------------------------
-# 🔥 YOUR EXACT PROMPT
-# -----------------------------------
 
 
 
@@ -192,10 +178,6 @@ Now process the following Job Description:
 """
 
 
-# -----------------------------------
-# 🔹 SAFE JSON PARSER
-# -----------------------------------
-
 def safe_json_load(content: str):
     try:
         return json.loads(content)
@@ -205,10 +187,6 @@ def safe_json_load(content: str):
         end = content.rfind("}") + 1
         return json.loads(content[start:end])
 
-
-# -----------------------------------
-# 🚀 MAIN JD PARSER
-# -----------------------------------
 
 async def parse_jd(pdf_path: str):
 
@@ -242,9 +220,7 @@ async def parse_jd(pdf_path: str):
         raw_output = response.choices[0].message.content
         parsed = safe_json_load(raw_output)
 
-        # -----------------------------------
-        # 🔥 FIXED SKILL PROCESSING
-        # -----------------------------------
+
 
         required_skills_list = parsed.get("required_skills_with_scores", [])
         good_to_have = parsed.get("good_to_have_skills", [])
@@ -280,9 +256,6 @@ async def parse_jd(pdf_path: str):
         except Exception:
             min_exp = 0
 
-        # -----------------------------------
-        # 📦 FINAL STRUCTURE
-        # -----------------------------------
 
         job_data = {
             "job_id": job_id,

@@ -16,9 +16,6 @@ from config.settings import (
 
 from config.tech_mapping import TECH_CATEGORIES_MAP as technologies_and_categories
 
-# -----------------------------
-# Async Azure Client
-# -----------------------------
 client = AsyncAzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
@@ -28,10 +25,6 @@ client = AsyncAzureOpenAI(
 # Controls concurrency for N resumes
 semaphore = asyncio.Semaphore(AZURE_CONCURRENCY)
 
-
-# -----------------------------
-# Utility: Clean JSON safely
-# -----------------------------
 def clean_json_response(text: str) -> str:
     text = text.strip()
 
@@ -42,9 +35,6 @@ def clean_json_response(text: str) -> str:
     return text
 current_date = datetime.utcnow().strftime("%d/%m/%Y")
 
-# -----------------------------
-# Enterprise Resume Prompt
-# -----------------------------
 def build_prompt(text: str) -> str:
     return f"""
             You are an enterprise-grade Resume Parser designed for an Applicant Tracking System (ATS).
